@@ -366,4 +366,61 @@ function loadGoogleMaps() {
 }
 
 // Inicializa quando o documento estiver pronto
-document.addEventListener('DOMContentLoaded', loadGoogleMaps); 
+document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+
+// Funções do mapa e autocomplete
+function initializeAutocomplete() {
+    if (!google || !google.maps || !google.maps.places) {
+        console.error('Google Maps não está carregado corretamente');
+        return;
+    }
+
+    const pickupInput = document.getElementById('pickup');
+    const destinationInput = document.getElementById('destination');
+    
+    if (pickupInput && destinationInput) {
+        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+            componentRestrictions: { country: 'BR' }
+        });
+        
+        const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput, {
+            componentRestrictions: { country: 'BR' }
+        });
+
+        // Listener para o local de partida
+        pickupAutocomplete.addListener('place_changed', () => {
+            const place = pickupAutocomplete.getPlace();
+            if (!place.geometry) {
+                alert('Por favor, selecione um endereço válido da lista.');
+                return;
+            }
+            
+            document.getElementById('pickup_lat').value = place.geometry.location.lat();
+            document.getElementById('pickup_lng').value = place.geometry.location.lng();
+            
+            calculateEstimates();
+        });
+
+        // Listener para o destino
+        destinationAutocomplete.addListener('place_changed', () => {
+            const place = destinationAutocomplete.getPlace();
+            if (!place.geometry) {
+                alert('Por favor, selecione um endereço válido da lista.');
+                return;
+            }
+            
+            document.getElementById('destination_lat').value = place.geometry.location.lat();
+            document.getElementById('destination_lng').value = place.geometry.location.lng();
+            
+            calculateEstimates();
+        });
+    }
+}
+
+// Socket.IO setup
+const socket = io();
+const userId = document.querySelector('[data-user-id]')?.dataset.userId;
+
+if (userId) {
+    socket.emit('join-passenger-room', userId);
+} 
