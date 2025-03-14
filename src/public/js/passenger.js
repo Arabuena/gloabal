@@ -18,6 +18,9 @@ const formatDuration = (minutes) => {
         `${minutes}min`;
 };
 
+// Variáveis globais
+let map, socket, originMarker, destinationMarker;
+
 // Handlers dos botões
 document.addEventListener('DOMContentLoaded', () => {
     // Botão de logout
@@ -47,8 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/passenger/request-ride';
         });
     }
-
-    initializeMap();
 });
 
 // Função para iniciar corrida para local favorito
@@ -75,9 +76,6 @@ async function startRideToFavorite(placeId) {
         alert('Erro ao iniciar corrida. Tente novamente.');
     }
 }
-
-// Variáveis globais
-let map, socket;
 
 // Definição dos ícones SVG
 const ICONS = {
@@ -183,6 +181,11 @@ function setupMarkerEvents(marker, type) {
 
 // Inicialização principal do mapa e funcionalidades
 function initializeMap() {
+    if (!google || !google.maps) {
+        console.error('Google Maps não está carregado');
+        return;
+    }
+
     // Inicializa o mapa
     map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: -23.550520, lng: -46.633308 }, // São Paulo

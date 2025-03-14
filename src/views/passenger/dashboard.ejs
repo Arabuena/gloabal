@@ -117,11 +117,17 @@
     </script>
     <script src="/js/passenger.js"></script>
     <script>
-        // Carrega o Google Maps depois que o passenger.js estiver carregado
+        // Carrega o Google Maps e inicializa após o carregamento
         function loadGoogleMaps() {
             const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${window.GLOBALS.googleMapsKey}&libraries=places&callback=initializeMap`;
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${window.GLOBALS.googleMapsKey}&libraries=places`;
             script.async = true;
+            script.onload = function() {
+                // Inicializa o mapa após o carregamento do Google Maps
+                if (typeof initializeMap === 'function') {
+                    initializeMap();
+                }
+            };
             document.body.appendChild(script);
         }
         
