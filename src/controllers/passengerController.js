@@ -301,26 +301,19 @@ class PassengerController {
                 return res.redirect('/login');
             }
 
-            // Busca corridas recentes
-            const recentRides = await Ride.find({
-                passenger: req.user.id
-            })
-            .sort({ requestedAt: -1 })
-            .limit(5)
-            .populate('driver', 'name rating photo');
-
-            // Busca promoções ativas
-            const promotions = await this.getActivePromotions(user);
-
             res.render('passenger/dashboard', {
                 user,
-                recentRides,
-                promotions,
+                googleMapsKey: process.env.GOOGLE_MAPS_API_KEY,
                 page: {
                     title: 'Dashboard do Passageiro',
                     current: 'dashboard'
                 },
-                googleMapsKey: process.env.GOOGLE_MAPS_API_KEY
+                env: {
+                    nodeEnv: process.env.NODE_ENV,
+                    socketUrl: process.env.NODE_ENV === 'production' ? 
+                        'https://gloabal.onrender.com' : 
+                        'http://localhost:3000'
+                }
             });
         } catch (error) {
             monitor.error('Erro ao renderizar dashboard', error);

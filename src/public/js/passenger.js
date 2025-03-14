@@ -141,12 +141,8 @@ function initializeSocket() {
         }
     };
 
-    // Tenta conectar primeiro ao servidor local em desenvolvimento
-    const serverUrl = process.env.NODE_ENV === 'production' 
-        ? window.GLOBALS.socketUrl 
-        : 'http://localhost:3000';
-
-    socket = io(serverUrl, socketOptions);
+    // Usa a URL do socket definida nas variáveis globais
+    socket = io(window.GLOBALS.socketUrl, socketOptions);
     
     socket.on('connect', () => {
         console.log('Conectado ao Socket.IO:', socket.id);
