@@ -6,9 +6,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup": "node scripts/setup.js",
-    "prestart": "npm run setup",
-    "check": "node scripts/checkFiles.js",
-    "prebuild": "mkdir -p tmp && chmod -R 777 tmp && mkdir -p src/public && chmod -R 777 src/public"
+    "build": "npm run setup"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.3.42",

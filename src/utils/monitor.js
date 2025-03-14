@@ -20,36 +20,38 @@ class Monitor {
     }
 
     log(type, message, data = {}) {
-        const timestamp = new Date().toISOString();
         const logEntry = {
-            timestamp,
+            timestamp: new Date().toISOString(),
             type,
             message,
             data
         };
-
-        // Sempre loga no console
-        console.log(`[${type.toUpperCase()}] ${message}`, data);
-
-        // Se não pudermos usar arquivos, retornamos aqui
-        if (this.useConsoleOnly) {
-            return;
-        }
-
-        try {
-            const logFile = path.join(this.logDir, `${type}-${new Date().toISOString().split('T')[0]}.log`);
-            fs.appendFileSync(logFile, JSON.stringify(logEntry) + '\n');
-        } catch (error) {
-            console.warn('Erro ao escrever no arquivo de log:', error.message);
-            this.useConsoleOnly = true; // Desativa logs em arquivo após erro
+        
+        // Em produção, você pode querer enviar para um serviço de logging
+        if (process.env.NODE_ENV === 'production') {
+            console.log(JSON.stringify(logEntry));
+        } else {
+            console.log(`[${type}] ${message}`, data);
         }
     }
 
     error(message, error) {
-        this.log('error', message, {
-            error: error.message,
+        const errorData = {
+            message: error.message,
             stack: error.stack
-        });
+        };
+        
+        // Em produção, você pode querer enviar para um serviço de logging
+        if (process.env.NODE_ENV === 'production') {
+            console.error(JSON.stringify({
+                timestamp: new Date().toISOString(),
+                type: 'ERROR',
+                message,
+                error: errorData
+            }));
+        } else {
+            console.error(`[ERROR] ${message}:`, error);
+        }
     }
 
     request(req) {
