@@ -12,6 +12,16 @@ const directories = [
     'src/views/driver'
 ];
 
+// Remover diretórios não utilizados
+const unusedDirectories = [
+    'src/views/auth',
+    'src/views/admin',
+    'src/public/uploads',
+    'src/public/images',
+    'src/middlewares',
+    'src/services'
+];
+
 console.log('\n=== Criando diretórios necessários ===');
 
 directories.forEach(dir => {
@@ -24,6 +34,19 @@ directories.forEach(dir => {
         }
     } catch (error) {
         console.warn(`Aviso: Não foi possível criar/verificar o diretório ${dir}:`, error.message);
+    }
+});
+
+// Remover diretórios não utilizados
+console.log('\n=== Removendo diretórios não utilizados ===');
+unusedDirectories.forEach(dir => {
+    try {
+        if (fs.existsSync(dir)) {
+            fs.rmdirSync(dir, { recursive: true });
+            console.log(`Diretório removido: ${dir}`);
+        }
+    } catch (error) {
+        console.warn(`Aviso: Não foi possível remover o diretório ${dir}:`, error.message);
     }
 });
 
