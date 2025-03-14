@@ -4,37 +4,14 @@ const rideController = require('../controllers/rideController');
 const auth = require('../middleware/auth');
 const roleAuth = require('../middleware/roleAuth');
 
-// Rotas do passageiro
-router.post('/request', 
-    auth, 
-    roleAuth(['passenger']), 
-    rideController.requestRide
-);
+// Rotas para passageiros
+router.post('/request', auth, rideController.requestRide);
+router.post('/:rideId/cancel', auth, rideController.cancelRide);
 
-// Rotas do motorista
-router.post('/:rideId/accept', 
-    auth, 
-    roleAuth(['driver']), 
-    rideController.acceptRide
-);
-
-router.post('/:rideId/start', 
-    auth, 
-    roleAuth(['driver']), 
-    rideController.startRide
-);
-
-router.post('/:rideId/finish', 
-    auth, 
-    roleAuth(['driver']), 
-    rideController.finishRide
-);
-
-// Rota de cancelamento (ambos)
-router.post('/:rideId/cancel', 
-    auth, 
-    roleAuth(['driver', 'passenger']), 
-    rideController.cancelRide
-);
+// Rotas para motoristas
+router.post('/:rideId/accept', auth, rideController.acceptRide);
+router.post('/:rideId/arrived', auth, rideController.arrivedAtPickup);
+router.post('/:rideId/start', auth, rideController.startRide);
+router.post('/:rideId/complete', auth, rideController.completeRide);
 
 module.exports = router; 

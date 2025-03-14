@@ -67,51 +67,29 @@ const rideSchema = new mongoose.Schema({
   }],
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'started', 'completed', 'cancelled'],
-    default: 'pending'
+    enum: ['PENDING', 'ACCEPTED', 'ARRIVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'],
+    default: 'PENDING'
   },
-  origin: {
+  pickup: {
     address: String,
     location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number],
-        required: true
-      }
+      type: { type: String, default: 'Point' },
+      coordinates: [Number]
     }
   },
   destination: {
     address: String,
     location: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point'
-      },
-      coordinates: {
-        type: [Number],
-        required: true
-      }
+      type: { type: String, default: 'Point' },
+      coordinates: [Number]
     }
   },
-  price: {
-    type: Number,
-    required: true
-  },
-  distance: {
-    type: Number, // em metros
-    required: true
-  },
-  duration: {
-    type: Number, // em segundos
-    required: true
-  },
+  price: Number,
+  distance: Number,
+  duration: Number,
   startTime: Date,
   endTime: Date,
+  cancelReason: String,
   createdAt: {
     type: Date,
     default: Date.now
@@ -119,7 +97,7 @@ const rideSchema = new mongoose.Schema({
 });
 
 // Índices para buscas geoespaciais
-rideSchema.index({ 'origin.location': '2dsphere' });
+rideSchema.index({ 'pickup.location': '2dsphere' });
 rideSchema.index({ 'destination.location': '2dsphere' });
 
 module.exports = mongoose.model('Ride', rideSchema); 

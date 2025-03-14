@@ -4,220 +4,154 @@ const monitor = require('../utils/monitor');
 const priceCalculator = require('../utils/priceCalculator');
 const MapsHelper = require('../utils/mapsHelper');
 
-class RideController {
-  // Solicitar uma corrida (passageiro)
-  async requestRide(req, res) {
+const rideController = {
+  // Passageiro solicita uma corrida
+  requestRide: async (req, res) => {
     try {
-      monitor.log('ride', 'Nova solicitação de corrida', req.body);
-      const { origin, destination, paymentMethod } = req.body;
-
-      // Validação básica
-      if (!origin?.lat || !origin?.lng || !destination?.lat || !destination?.lng) {
-        return res.status(400).json({ message: 'Origem e destino são obrigatórios' });
-      }
-
-      // Calcula preço estimado
-      const priceEstimate = await priceCalculator.calculatePrice(origin, destination);
-
-      // Busca motoristas próximos para ajustar preço por demanda
-      const nearbyDrivers = await User.find({
-        role: 'driver',
-        isOnline: true,
-        'currentLocation': {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [origin.lng, origin.lat]
-            },
-            $maxDistance: 5000 // 5km
-          }
-        }
-      }).count();
-
-      // Busca corridas ativas na região
-      const activeRides = await Ride.find({
-        status: { $in: ['searching', 'accepted'] },
-        'origin.location': {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [origin.lng, origin.lat]
-            },
-            $maxDistance: 5000
-          }
-        }
-      }).count();
-
-      // Atualiza multiplicador de demanda
-      priceCalculator.updateDemandMultiplier(activeRides, nearbyDrivers);
-
-      // Cria a corrida
+      const { pickup, destination, price, distance, duration } = req.body;
+      
       const ride = new Ride({
         passenger: req.user.id,
-        origin: {
-          address: origin.address,
-          location: {
-            type: 'Point',
-            coordinates: [origin.lng, origin.lat]
-          }
-        },
-        destination: {
-          address: destination.address,
-          location: {
-            type: 'Point',
-            coordinates: [destination.lng, destination.lat]
-          }
-        },
-        status: 'searching',
-        paymentMethod,
-        price: priceEstimate.price,
-        distance: priceEstimate.distance,
-        duration: priceEstimate.duration,
-        multipliers: priceEstimate.multipliers,
-        requestedAt: new Date()
+        pickup,
+        destination,
+        price,
+        distance,
+        duration
       });
 
       await ride.save();
-      monitor.log('ride', 'Corrida criada', { 
-        rideId: ride._id,
-        price: priceEstimate.price,
-        nearbyDrivers
-      });
 
-      res.json({ 
-        success: true, 
-        ride,
-        estimatedWait: nearbyDrivers > 0 ? '5-10 min' : '10-15 min'
-      });
+      // Aqui você pode implementar a lógica para notificar motoristas próximos
+      
+      monitor.log('ride', 'Nova corrida solicitada', { rideId: ride._id });
+      res.status(201).json(ride);
     } catch (error) {
       monitor.error('Erro ao solicitar corrida', error);
       res.status(500).json({ message: 'Erro ao solicitar corrida' });
     }
-  }
+  },
 
-  // Aceitar uma corrida (motorista)
-  async acceptRide(req, res) {
+  // Motorista aceita uma corrida
+  acceptRide: async (req, res) => {
     try {
       const { rideId } = req.params;
-      monitor.log('ride', 'Tentativa de aceitar corrida', { rideId, driverId: req.user.id });
-
       const ride = await Ride.findById(rideId);
-      if (!ride || ride.status !== 'searching') {
-        return res.status(400).json({ message: 'Corrida não disponível' });
+
+      if (!ride) {
+        return res.status(404).json({ message: 'Corrida não encontrada' });
+      }
+
+      if (ride.status !== 'PENDING') {
+        return res.status(400).json({ message: 'Corrida não está mais disponível' });
       }
 
       ride.driver = req.user.id;
-      ride.status = 'accepted';
-      ride.acceptedAt = new Date();
+      ride.status = 'ACCEPTED';
       await ride.save();
 
-      monitor.log('ride', 'Corrida aceita pelo motorista', { 
-        rideId, 
-        driverId: req.user.id 
-      });
+      // Aqui você pode implementar a notificação ao passageiro
 
-      res.json({ success: true, ride });
+      monitor.log('ride', 'Corrida aceita pelo motorista', { rideId });
+      res.json(ride);
     } catch (error) {
       monitor.error('Erro ao aceitar corrida', error);
       res.status(500).json({ message: 'Erro ao aceitar corrida' });
     }
-  }
+  },
 
-  // Iniciar corrida (motorista)
-  async startRide(req, res) {
+  // Motorista indica que chegou ao local de partida
+  arrivedAtPickup: async (req, res) => {
     try {
       const { rideId } = req.params;
-      monitor.log('ride', 'Iniciando corrida', { rideId, driverId: req.user.id });
+      const ride = await Ride.findById(rideId);
 
-      const ride = await Ride.findOne({ 
-        _id: rideId, 
-        driver: req.user.id,
-        status: 'accepted'
-      });
-
-      if (!ride) {
-        return res.status(400).json({ message: 'Corrida não encontrada' });
+      if (!ride || ride.driver.toString() !== req.user.id) {
+        return res.status(404).json({ message: 'Corrida não encontrada' });
       }
 
-      ride.status = 'in_progress';
-      ride.startedAt = new Date();
+      ride.status = 'ARRIVED';
+      await ride.save();
+
+      monitor.log('ride', 'Motorista chegou ao local', { rideId });
+      res.json(ride);
+    } catch (error) {
+      monitor.error('Erro ao atualizar status de chegada', error);
+      res.status(500).json({ message: 'Erro ao atualizar status' });
+    }
+  },
+
+  // Iniciar a corrida
+  startRide: async (req, res) => {
+    try {
+      const { rideId } = req.params;
+      const ride = await Ride.findById(rideId);
+
+      if (!ride || ride.driver.toString() !== req.user.id) {
+        return res.status(404).json({ message: 'Corrida não encontrada' });
+      }
+
+      ride.status = 'IN_PROGRESS';
+      ride.startTime = new Date();
       await ride.save();
 
       monitor.log('ride', 'Corrida iniciada', { rideId });
-      res.json({ success: true, ride });
+      res.json(ride);
     } catch (error) {
       monitor.error('Erro ao iniciar corrida', error);
       res.status(500).json({ message: 'Erro ao iniciar corrida' });
     }
-  }
+  },
 
-  // Finalizar corrida (motorista)
-  async finishRide(req, res) {
+  // Finalizar a corrida
+  completeRide: async (req, res) => {
     try {
       const { rideId } = req.params;
-      monitor.log('ride', 'Finalizando corrida', { rideId, driverId: req.user.id });
+      const ride = await Ride.findById(rideId);
 
-      const ride = await Ride.findOne({
-        _id: rideId,
-        driver: req.user.id,
-        status: 'in_progress'
-      });
-
-      if (!ride) {
-        return res.status(400).json({ message: 'Corrida não encontrada' });
+      if (!ride || ride.driver.toString() !== req.user.id) {
+        return res.status(404).json({ message: 'Corrida não encontrada' });
       }
 
-      ride.status = 'completed';
-      ride.finishedAt = new Date();
+      ride.status = 'COMPLETED';
+      ride.endTime = new Date();
       await ride.save();
 
       monitor.log('ride', 'Corrida finalizada', { rideId });
-      res.json({ success: true, ride });
+      res.json(ride);
     } catch (error) {
       monitor.error('Erro ao finalizar corrida', error);
       res.status(500).json({ message: 'Erro ao finalizar corrida' });
     }
-  }
+  },
 
-  // Cancelar corrida (ambos)
-  async cancelRide(req, res) {
+  // Cancelar a corrida
+  cancelRide: async (req, res) => {
     try {
       const { rideId } = req.params;
-      monitor.log('ride', 'Tentativa de cancelamento', { 
-        rideId, 
-        userId: req.user.id,
-        role: req.user.role 
-      });
-
+      const { reason } = req.body;
       const ride = await Ride.findById(rideId);
+
       if (!ride) {
-        return res.status(400).json({ message: 'Corrida não encontrada' });
+        return res.status(404).json({ message: 'Corrida não encontrada' });
       }
 
-      // Verifica permissão para cancelar
-      if (req.user.role === 'passenger' && ride.passenger.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Não autorizado' });
-      }
-      if (req.user.role === 'driver' && ride.driver?.toString() !== req.user.id) {
-        return res.status(403).json({ message: 'Não autorizado' });
+      // Verifica se o usuário tem permissão para cancelar
+      if (ride.passenger.toString() !== req.user.id && 
+          (!ride.driver || ride.driver.toString() !== req.user.id)) {
+        return res.status(403).json({ message: 'Sem permissão para cancelar' });
       }
 
-      ride.status = 'cancelled';
-      ride.cancelledBy = req.user.role;
-      ride.cancelledAt = new Date();
+      ride.status = 'CANCELLED';
+      ride.cancelReason = reason;
       await ride.save();
 
-      monitor.log('ride', 'Corrida cancelada', { 
-        rideId,
-        cancelledBy: req.user.role 
-      });
-
-      res.json({ success: true, ride });
+      monitor.log('ride', 'Corrida cancelada', { rideId, reason });
+      res.json(ride);
     } catch (error) {
       monitor.error('Erro ao cancelar corrida', error);
       res.status(500).json({ message: 'Erro ao cancelar corrida' });
     }
   }
-}
+};
 
-module.exports = new RideController(); 
+module.exports = rideController; 
