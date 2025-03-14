@@ -8,8 +8,17 @@ class Monitor {
     }
 
     ensureLogDir() {
-        if (!fs.existsSync(this.logDir)) {
-            fs.mkdirSync(this.logDir, { recursive: true });
+        try {
+            if (!fs.existsSync(this.logDir)) {
+                fs.mkdirSync(this.logDir, { recursive: true, mode: 0o777 });
+            }
+        } catch (error) {
+            console.warn(`Aviso: Não foi possível criar o diretório de logs:`, error.message);
+            // Use um diretório alternativo se o principal falhar
+            this.logDir = './tmp/logs';
+            if (!fs.existsSync(this.logDir)) {
+                fs.mkdirSync(this.logDir, { recursive: true, mode: 0o777 });
+            }
         }
     }
 
