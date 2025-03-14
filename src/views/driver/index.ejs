@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dashboard do Motorista</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Bem-vindo, <%= user.name %></h1>
+            <div class="status-toggle">
+                <label>
+                    <input type="checkbox" id="availabilityToggle">
+                    Disponível para corridas
+                </label>
+            </div>
+        </header>
+
+        <div id="availableRides">
+            <h2>Corridas Disponíveis</h2>
+            <div id="ridesList" class="rides-list"></div>
+        </div>
+
+        <div id="activeRide" style="display: none;">
+            <h2>Corrida em Andamento</h2>
+            <div class="ride-info">
+                <p>Passageiro: <span id="passengerName"></span></p>
+                <p>Local de Partida: <span id="pickupLocation"></span></p>
+                <p>Destino: <span id="destination"></span></p>
+                <p>Status: <span id="rideStatus"></span></p>
+            </div>
+            
+            <div class="ride-actions">
+                <button id="arrivedButton" style="display: none;">Cheguei ao Local</button>
+                <button id="startRideButton" style="display: none;">Iniciar Corrida</button>
+                <button id="completeRideButton" style="display: none;">Finalizar Corrida</button>
+                <button id="cancelRideButton" class="danger-btn">Cancelar Corrida</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const userId = '<%= user._id %>';
+        let currentRideId = null;
+        
+        socket.emit('join-driver-room', userId);
+
+        const availabilityToggle = document.getElementById('availabilityToggle');
+        availabilityToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                socket.emit('driver-available', userId);
+            } else {
+                socket.emit('driver-unavailable', userId);
+            }
+        });
+
+        // Socket.IO event listeners
+        socket.on('new-ride-available', (ride) => {
+            if (availabilityToggle.checked) {
+                addRideToList(ride);
+            }
+        });
+
+        function addRideToList(ride) {
+            const ridesList = document.getElementById('ridesList');
+            const rideElement = document.createElement('div');
+            rideElement.className = 'ride-item';
+            rideElement.innerHTML = `
+                <p>De: ${ride.pickup.address}</p>
+                <p>Para: ${ride.destination.address}</p>
+                <button onclick="acceptRide('${ride._id}')">Aceitar Corrida</button>
+            `;
+            ridesList.appendChild(rideElement);
+        }
+
+        async function acceptRide(rideId) {
+            try {
+                const response = await fetch(`/api/rides/${rideId}/accept`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const ride = await response.json();
+                    currentRideId = rideId;
+                    showActiveRide(ride);
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao aceitar corrida');
+            }
+        }
+
+        document.getElementById('cancelRideButton').addEventListener('click', async () => {
+            if (!currentRideId) return;
+
+            try {
+                const response = await fetch(`/api/rides/${currentRideId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        reason: 'Cancelado pelo motorista'
+                    })
+                });
+
+                if (response.ok) {
+                    resetView();
+                }
+            } catch (error) {
+                console.error('Erro ao cancelar:', error);
+            }
+        });
+
+        function showActiveRide(ride) {
+            document.getElementById('availableRides').style.display = 'none';
+            document.getElementById('activeRide').style.display = 'block';
+            
+            document.getElementById('passengerName').textContent = ride.passenger.name;
+            document.getElementById('pickupLocation').textContent = ride.pickup.address;
+            document.getElementById('destination').textContent = ride.destination.address;
+            document.getElementById('rideStatus').textContent = getRideStatusText(ride.status);
+            
+            updateRideButtons(ride.status);
+        }
+
+        function resetView() {
+            currentRideId = null;
+            document.getElementById('availableRides').style.display = 'block';
+            document.getElementById('activeRide').style.display = 'none';
+            document.getElementById('ridesList').innerHTML = '';
+        }
+
+        function getRideStatusText(status) {
+            const statusTexts = {
+                'PENDING': 'Aguardando aceitação',
+                'ACCEPTED': 'A caminho do passageiro',
+                'ARRIVED': 'No local de partida',
+                'IN_PROGRESS': 'Em andamento',
+                'COMPLETED': 'Finalizada',
+                'CANCELLED': 'Cancelada'
+            };
+            return statusTexts[status] || status;
+        }
+
+        function updateRideButtons(status) {
+            const arrivedButton = document.getElementById('arrivedButton');
+            const startRideButton = document.getElementById('startRideButton');
+            const completeRideButton = document.getElementById('completeRideButton');
+
+            switch(status) {
+                case 'ACCEPTED':
+                    arrivedButton.style.display = 'block';
+                    startRideButton.style.display = 'none';
+                    completeRideButton.style.display = 'none';
+                    break;
+                case 'ARRIVED':
+                    arrivedButton.style.display = 'none';
+                    startRideButton.style.display = 'block';
+                    completeRideButton.style.display = 'none';
+                    break;
+                case 'IN_PROGRESS':
+                    arrivedButton.style.display = 'none';
+                    startRideButton.style.display = 'none';
+                    completeRideButton.style.display = 'block';
+                    break;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -61,6 +61,37 @@
                     <% } %>
                 </div>
             </section>
+
+            <div class="ride-request-form" id="rideRequestSection">
+                <h2>Solicitar Corrida</h2>
+                <form id="rideRequestForm">
+                    <div class="form-group">
+                        <label>Local de Partida</label>
+                        <input type="text" id="pickup" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Destino</label>
+                        <input type="text" id="destination" required>
+                    </div>
+
+                    <button type="submit">Solicitar Corrida</button>
+                </form>
+            </div>
+
+            <div id="activeRide" style="display: none;">
+                <h2>Corrida em Andamento</h2>
+                <div class="ride-status">
+                    Status: <span id="rideStatus">Aguardando motorista...</span>
+                </div>
+                <div class="driver-info" style="display: none;">
+                    <h3>Informações do Motorista</h3>
+                    <p>Nome: <span id="driverName"></span></p>
+                    <p>Veículo: <span id="driverCar"></span></p>
+                    <p>Placa: <span id="driverPlate"></span></p>
+                </div>
+                <button id="cancelRide" class="danger-btn">Cancelar Corrida</button>
+            </div>
         </main>
     </div>
 
@@ -71,6 +102,110 @@
     <script>
         document.getElementById('newRideBtn').addEventListener('click', () => {
             window.location.href = '/passenger/request-ride';
+        });
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const userId = '<%= user._id %>'; // Passado do backend
+        socket.emit('join-passenger-room', userId);
+
+        const rideRequestForm = document.getElementById('rideRequestForm');
+        const activeRide = document.getElementById('activeRide');
+        const rideRequestSection = document.getElementById('rideRequestSection');
+        let currentRideId = null;
+
+        rideRequestForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const pickup = document.getElementById('pickup').value;
+            const destination = document.getElementById('destination').value;
+
+            try {
+                const response = await fetch('/api/rides/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        pickup: { address: pickup },
+                        destination: { address: destination }
+                    })
+                });
+
+                if (response.ok) {
+                    const ride = await response.json();
+                    currentRideId = ride._id;
+                    showActiveRide(ride);
+                } else {
+                    alert('Erro ao solicitar corrida');
+                }
+            } catch (error) {
+                console.error('Erro:', error);
+                alert('Erro ao solicitar corrida');
+            }
+        });
+
+        document.getElementById('cancelRide').addEventListener('click', async () => {
+            if (!currentRideId) return;
+
+            try {
+                const response = await fetch(`/api/rides/${currentRideId}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        reason: 'Cancelado pelo passageiro'
+                    })
+                });
+
+                if (response.ok) {
+                    resetRideView();
+                }
+            } catch (error) {
+                console.error('Erro ao cancelar:', error);
+            }
+        });
+
+        function showActiveRide(ride) {
+            rideRequestSection.style.display = 'none';
+            activeRide.style.display = 'block';
+            document.getElementById('rideStatus').textContent = getRideStatusText(ride.status);
+        }
+
+        function resetRideView() {
+            currentRideId = null;
+            rideRequestSection.style.display = 'block';
+            activeRide.style.display = 'none';
+            document.getElementById('rideStatus').textContent = 'Aguardando motorista...';
+        }
+
+        function getRideStatusText(status) {
+            const statusTexts = {
+                'PENDING': 'Aguardando motorista',
+                'ACCEPTED': 'Motorista a caminho',
+                'ARRIVED': 'Motorista chegou ao local',
+                'IN_PROGRESS': 'Em andamento',
+                'COMPLETED': 'Finalizada',
+                'CANCELLED': 'Cancelada'
+            };
+            return statusTexts[status] || status;
+        }
+
+        // Socket.IO event listeners
+        socket.on('ride-status-update', (data) => {
+            if (data.rideId === currentRideId) {
+                document.getElementById('rideStatus').textContent = getRideStatusText(data.status);
+                
+                if (data.status === 'ACCEPTED' && data.driver) {
+                    const driverInfo = document.querySelector('.driver-info');
+                    driverInfo.style.display = 'block';
+                    document.getElementById('driverName').textContent = data.driver.name;
+                    document.getElementById('driverCar').textContent = data.driver.car;
+                    document.getElementById('driverPlate').textContent = data.driver.plate;
+                }
+            }
         });
     </script>
 </body>

@@ -8,20 +8,19 @@ const rideController = {
   // Passageiro solicita uma corrida
   requestRide: async (req, res) => {
     try {
-      const { pickup, destination, price, distance, duration } = req.body;
+      const { pickup, destination } = req.body;
       
       const ride = new Ride({
         passenger: req.user.id,
         pickup,
-        destination,
-        price,
-        distance,
-        duration
+        destination
       });
 
       await ride.save();
 
-      // Aqui você pode implementar a lógica para notificar motoristas próximos
+      // Notificar motoristas disponíveis
+      const io = req.app.get('io');
+      io.emit('new-ride-available', ride);
       
       monitor.log('ride', 'Nova corrida solicitada', { rideId: ride._id });
       res.status(201).json(ride);
@@ -150,6 +149,28 @@ const rideController = {
     } catch (error) {
       monitor.error('Erro ao cancelar corrida', error);
       res.status(500).json({ message: 'Erro ao cancelar corrida' });
+    }
+  },
+
+  // Atualizar status e notificar
+  updateRideStatus: async (req, res) => {
+    try {
+      const { rideId } = req.params;
+      const { status } = req.body;
+      const ride = await Ride.findById(rideId);
+
+      if (!ride || ride.driver.toString() !== req.user.id) {
+        return res.status(404).json({ message: 'Corrida não encontrada' });
+      }
+
+      const io = req.app.get('io');
+      updateRideStatus(io, ride, status);
+
+      monitor.log('ride', `Corrida atualizada para status: ${status}`, { rideId });
+      res.json(ride);
+    } catch (error) {
+      monitor.error('Erro ao atualizar status da corrida', error);
+      res.status(500).json({ message: 'Erro ao atualizar status da corrida' });
     }
   }
 };
