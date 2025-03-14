@@ -51,6 +51,19 @@ app.use((req, res, next) => {
     next();
 });
 
+// Configurações de segurança
+app.use((req, res, next) => {
+    res.setHeader('Content-Security-Policy', `
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.socket.io https://maps.googleapis.com;
+        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+        img-src 'self' data: https://*.googleapis.com https://*.gstatic.com;
+        font-src 'self' https://fonts.gstatic.com;
+        connect-src 'self' https://maps.googleapis.com https://*.gstatic.com wss: ws:;
+    `.replace(/\s+/g, ' ').trim());
+    next();
+});
+
 // Conexão com MongoDB
 console.log('Conectando ao MongoDB...');
 mongoose.connect(process.env.MONGODB_URI)
@@ -87,7 +100,7 @@ app.use((req, res) => {
 
 // Tratamento de erros
 app.use((err, req, res, next) => {
-    console.error('Erro na aplicação:', err);
+    monitor.error('Erro na aplicação', err);
     
     // Se for uma requisição de API
     if (req.path.startsWith('/api/')) {
@@ -98,8 +111,7 @@ app.use((err, req, res, next) => {
     res.status(500).render('errors/500', {
         page: {
             title: 'Erro interno'
-        },
-        error: process.env.NODE_ENV === 'development' ? err : {}
+        }
     });
 });
 

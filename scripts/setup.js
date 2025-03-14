@@ -62,19 +62,44 @@ if (!fs.existsSync(selectRolePath)) {
 <head>
     <title>Selecione seu perfil</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
     <div class="container">
-        <h1>Bem-vindo ao Move</h1>
-        <div class="role-selection">
-            <a href="/passenger" class="role-button">Sou Passageiro</a>
-            <a href="/driver" class="role-button">Sou Motorista</a>
+        <div class="role-selection-container">
+            <h1>Bem-vindo ao Move</h1>
+            <div class="role-selection">
+                <a href="/passenger" class="role-button">Sou Passageiro</a>
+                <a href="/driver" class="role-button">Sou Motorista</a>
+            </div>
         </div>
     </div>
 </body>
 </html>`;
     fs.writeFileSync(selectRolePath, selectRoleContent);
     console.log('Arquivo select-role.ejs criado');
+}
+
+// Criar arquivo 500.ejs se não existir
+const error500Path = 'src/views/errors/500.ejs';
+if (!fs.existsSync(error500Path)) {
+    const error500Content = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>500 - Erro Interno</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="error-container">
+        <h1>500 - Erro Interno do Servidor</h1>
+        <p>Desculpe, algo deu errado no servidor.</p>
+        <a href="/">Voltar para a página inicial</a>
+    </div>
+</body>
+</html>`;
+    fs.writeFileSync(error500Path, error500Content);
+    console.log('Arquivo 500.ejs criado');
 }
 
 console.log('===================================\n'); 
