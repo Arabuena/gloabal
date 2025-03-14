@@ -78,13 +78,29 @@ app.use((req, res, next) => {
 // Tratamento de erro 404
 app.use((req, res) => {
     console.log('404 - Página não encontrada:', req.path);
-    res.status(404).render('errors/404');
+    res.status(404).render('errors/404', {
+        page: {
+            title: 'Página não encontrada'
+        }
+    });
 });
 
 // Tratamento de erros
 app.use((err, req, res, next) => {
-    monitor.error('Erro na aplicação', err);
-    res.status(500).json({ message: 'Erro interno do servidor' });
+    console.error('Erro na aplicação:', err);
+    
+    // Se for uma requisição de API
+    if (req.path.startsWith('/api/')) {
+        return res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+    
+    // Se for uma requisição de página
+    res.status(500).render('errors/500', {
+        page: {
+            title: 'Erro interno'
+        },
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
 });
 
 module.exports = { app, http }; 
