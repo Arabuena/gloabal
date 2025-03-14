@@ -128,28 +128,47 @@ function initializeMap() {
 
 // Inicialização do Socket.IO
 function initializeSocket() {
-    socket = io(window.GLOBALS.socketUrl, {
+    const socketOptions = {
         path: '/socket.io/',
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'],
         reconnection: true,
         reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-    });
-    
-    if (window.GLOBALS.userId) {
-        socket.emit('join-passenger-room', window.GLOBALS.userId);
-    }
+        reconnectionDelay: 1000,
+        timeout: 20000,
+        autoConnect: true,
+        query: {
+            userId: window.GLOBALS.userId
+        }
+    };
 
+    // Tenta conectar primeiro ao servidor local em desenvolvimento
+    const serverUrl = process.env.NODE_ENV === 'production' 
+        ? window.GLOBALS.socketUrl 
+        : 'http://localhost:3000';
+
+    socket = io(serverUrl, socketOptions);
+    
     socket.on('connect', () => {
-        console.log('Conectado ao servidor Socket.IO');
+        console.log('Conectado ao Socket.IO:', socket.id);
+        if (window.GLOBALS.userId) {
+            socket.emit('join-passenger-room', window.GLOBALS.userId);
+        }
     });
 
     socket.on('connect_error', (error) => {
         console.error('Erro de conexão Socket.IO:', error);
     });
 
-    // Socket.IO event listeners
+    socket.on('disconnect', (reason) => {
+        console.log('Desconectado do Socket.IO:', reason);
+    });
+
+    socket.on('reconnect', (attemptNumber) => {
+        console.log('Reconectado ao Socket.IO após', attemptNumber, 'tentativas');
+    });
+
     socket.on('ride-status-update', (data) => {
+        console.log('Atualização de status recebida:', data);
         if (data.rideId === currentRideId) {
             updateRideStatus(data);
         }
