@@ -1,6 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
+// Verifica se o server.js existe na raiz
+if (!fs.existsSync('server.js')) {
+    fs.writeFileSync('server.js', "require('./src/server.js');");
+    console.log('Arquivo server.js criado na raiz');
+}
+
 const directories = [
     'src/public/js',
     'src/public/css',
