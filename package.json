@@ -8,7 +8,7 @@
     "setup": "node scripts/setup.js",
     "prestart": "npm run setup",
     "check": "node scripts/checkFiles.js",
-    "prebuild": "chmod -R 777 src/public && mkdir -p logs && chmod -R 777 logs"
+    "prebuild": "mkdir -p tmp && chmod -R 777 tmp && mkdir -p src/public && chmod -R 777 src/public"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.3.42",

@@ -6,6 +6,7 @@ const directories = [
     './tmp/public/css',
     './tmp/public/js',
     './tmp/public/img',
+    './tmp/logs',
     'src/views',
     'src/views/passenger',
     'src/views/driver',
