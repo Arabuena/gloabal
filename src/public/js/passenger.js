@@ -76,8 +76,8 @@ async function startRideToFavorite(placeId) {
     }
 }
 
-// Funções para o mapa e solicitação de corrida
-let map, originMarker, destinationMarker;
+// Variáveis globais
+let map, socket;
 
 // Definição dos ícones SVG
 const ICONS = {
@@ -181,48 +181,70 @@ function setupMarkerEvents(marker, type) {
     });
 }
 
-// Atualiza a função initMap para incluir os estilos personalizados
-function initMap() {
-    const mapStyles = [
-        {
-            featureType: 'poi',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-        },
-        {
-            featureType: 'transit',
-            elementType: 'labels',
-            stylers: [{ visibility: 'off' }]
-        }
-    ];
+// Inicialização do Socket.IO
+function initializeSocket() {
+    socket = io();
+    
+    if (userId) {
+        socket.emit('join-passenger-room', userId);
+    }
 
+    // Socket.IO event listeners
+    socket.on('ride-status-update', (data) => {
+        if (data.rideId === currentRideId) {
+            updateRideStatus(data);
+        }
+    });
+}
+
+// Inicialização do mapa
+function initMap() {
     map = new google.maps.Map(document.getElementById('map'), {
         center: { lat: -23.550520, lng: -46.633308 },
-        zoom: 12,
-        styles: mapStyles,
-        disableDefaultUI: true,
-        zoomControl: true,
-        mapTypeControl: false,
-        scaleControl: true,
-        streetViewControl: false,
-        rotateControl: false,
-        fullscreenControl: true
+        zoom: 12
     });
 
-    directionsService = new google.maps.DirectionsService();
-    directionsRenderer = new google.maps.DirectionsRenderer({
-        map: map,
-        suppressMarkers: true,
-        polylineOptions: {
-            strokeColor: '#2196F3',
-            strokeWeight: 5
+    // Inicializa o autocomplete após o mapa estar carregado
+    initializeAutocomplete();
+    
+    // Inicializa Socket.IO após o mapa
+    initializeSocket();
+}
+
+// Função para inicializar o autocomplete
+function initializeAutocomplete() {
+    if (!google || !google.maps || !google.maps.places) {
+        console.error('Google Maps não está carregado corretamente');
+        return;
+    }
+
+    const pickupInput = document.getElementById('pickup');
+    const destinationInput = document.getElementById('destination');
+    
+    if (pickupInput && destinationInput) {
+        setupAutocomplete(pickupInput, 'pickup');
+        setupAutocomplete(destinationInput, 'destination');
+    }
+}
+
+// Configuração do autocomplete
+function setupAutocomplete(input, type) {
+    const autocomplete = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'BR' }
+    });
+    
+    autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry) {
+            alert('Por favor, selecione um endereço válido da lista.');
+            return;
         }
+        
+        document.getElementById(`${type}_lat`).value = place.geometry.location.lat();
+        document.getElementById(`${type}_lng`).value = place.geometry.location.lng();
+        
+        calculateEstimates();
     });
-
-    // Inicializa autocomplete e geolocalização
-    setupAutocomplete('origin');
-    setupAutocomplete('destination');
-    getUserLocation();
 }
 
 // Verifica parâmetros da URL para pré-preencher destino
@@ -418,7 +440,6 @@ function initializeAutocomplete() {
 }
 
 // Socket.IO setup
-const socket = io();
 const userId = document.querySelector('[data-user-id]')?.dataset.userId;
 
 if (userId) {
