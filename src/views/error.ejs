@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Erro - Leva</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/css/tailwind.css" rel="stylesheet">
+</head>
+<body class="bg-purple-50">
+    <div class="min-h-screen flex items-center justify-center">
+        <div class="max-w-md w-full space-y-8 p-8 bg-white rounded-xl shadow-lg">
+            <div>
+                <h2 class="text-center text-3xl font-bold text-red-600">Erro</h2>
+                <p class="mt-4 text-center text-gray-600"><%= message %></p>
+                <% if (error.stack && process.env.NODE_ENV === 'development') { %>
+                    <pre class="mt-4 p-4 bg-gray-100 rounded text-sm overflow-auto"><%= error.stack %></pre>
+                <% } %>
+            </div>
+            <div class="text-center">
+                <a href="/" class="text-purple-600 hover:text-purple-500">Voltar para a página inicial</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

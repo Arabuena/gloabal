@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard do Passageiro</title>
+    <link rel="stylesheet" href="/css/styles.css?v=<%= Date.now() %>">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Bem-vindo, <%= user.name %></h1>
+            <nav>
+                <button id="newRideBtn" class="primary-btn">Nova Corrida</button>
+                <a href="/logout" class="secondary-btn">Sair</a>
+            </nav>
+        </header>
+
+        <main>
+            <section class="current-location-section">
+                <h3>Sua Localização</h3>
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+                <div id="current-address" class="current-address">
+                    Obtendo sua localização...
+                </div>
+            </section>
+
+            <section class="quick-actions">
+                <h2>Ações Rápidas</h2>
+                <div class="actions-grid">
+                    <div class="action-card">
+                        <h3>Solicitar Corrida</h3>
+                        <button onclick="location.href='/passenger/request-ride'">Solicitar</button>
+                    </div>
+                    <div class="action-card">
+                        <h3>Histórico</h3>
+                        <button onclick="location.href='/passenger/history'">Ver</button>
+                    </div>
+                    <div class="action-card">
+                        <h3>Promoções</h3>
+                        <button onclick="location.href='/passenger/promotions'">Ver</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="favorite-places">
+                <h2>Locais Favoritos</h2>
+                <div class="places-list">
+                    <% if (user.favoritePlaces && user.favoritePlaces.length > 0) { %>
+                        <% user.favoritePlaces.forEach(place => { %>
+                            <div class="place-card">
+                                <h4><%= place.name %></h4>
+                                <p><%= place.address %></p>
+                                <button onclick="startRideToFavorite('<%= place._id %>')">Ir para este local</button>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>Nenhum local favorito cadastrado</p>
+                    <% } %>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const googleMapsKey = '<%= googleMapsKey %>';
+    </script>
+    <script src="/js/passenger.js"></script>
+    <script>
+        document.getElementById('newRideBtn').addEventListener('click', () => {
+            window.location.href = '/passenger/request-ride';
+        });
+    </script>
+</body>
+</html> 

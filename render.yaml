@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: move-backend
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGODB_URI
+        value: mongodb+srv://ara100limite:ERxkG9nXZjbwvpMk@cluster0.yzf2r.mongodb.net/bora?retryWrites=true&w=majority
+      - key: JWT_SECRET
+        value: bora_uber_clone_secret_2024
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_URL
+        value: https://move-ah77.onrender.com
+      - key: GOOGLE_MAPS_API_KEY
+        value: AIzaSyAVe7W-B0zZa-6ePrcLfZkDzs1RGRSHSCc
+    healthCheckPath: /select-role
+    autoDeploy: true

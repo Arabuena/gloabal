@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Move - Seu app de mobilidade</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="/css/home.css" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?key=<%= process.env.GOOGLE_MAPS_API_KEY %>&libraries=places"></script>
+</head>
+<body class="bg-purple-50">
+    <!-- Navbar -->
+    <nav class="bg-purple-800 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-semibold text-white">Move</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/auth/login" class="text-white hover:text-purple-200 transition-colors">Login</a>
+                    <a href="/auth/register" class="bg-white text-purple-800 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors">
+                        Cadastre-se
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative bg-purple-800 overflow-hidden">
+        <div class="max-w-7xl mx-auto">
+            <div class="relative z-10 pb-8 bg-purple-800 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
+                <!-- Animated background shapes -->
+                <div class="absolute inset-0 overflow-hidden">
+                    <div class="absolute transform -rotate-45 -translate-x-1/2 -translate-y-1/2" style="top: 25%; left: 25%;">
+                        <div class="w-48 h-48 bg-purple-600 rounded-full opacity-10 animate-pulse"></div>
+                    </div>
+                    <div class="absolute transform rotate-12 translate-x-1/4 -translate-y-1/4" style="top: 50%; right: 25%;">
+                        <div class="w-64 h-64 bg-purple-500 rounded-full opacity-10 animate-pulse" style="animation-delay: 1s"></div>
+                    </div>
+                </div>
+                <main class="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
+                    <div class="sm:text-center lg:text-left">
+                        <h1 class="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl hero-title">
+                            <span class="block">Sua viagem mais</span>
+                            <span class="block text-purple-300">segura e confortável</span>
+                        </h1>
+                        <p class="mt-3 text-base text-purple-200 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0 hero-description">
+                            Conectamos você a motoristas confiáveis. Viaje com segurança, praticidade e preços justos.
+                        </p>
+                        <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start hero-cta">
+                            <div class="rounded-md shadow">
+                                <a href="/auth/register?type=passenger" class="cta-button w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-purple-800 bg-white hover:bg-purple-100 md:py-4 md:text-lg md:px-10">
+                                    Quero ser passageiro
+                                </a>
+                            </div>
+                            <div class="mt-3 sm:mt-0 sm:ml-3">
+                                <a href="/auth/register?type=driver" class="cta-button w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 md:py-4 md:text-lg md:px-10">
+                                    Quero ser motorista
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
+            <img class="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full" 
+                 src="/images/hero-image.jpg" 
+                 alt="Pessoa usando aplicativo de transporte">
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="py-12 bg-white">
+        <!-- Stats Section -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3 bg-purple-800 rounded-lg shadow-xl p-8">
+                <div class="text-center stats-card">
+                    <p class="text-4xl font-bold text-white stats-number" id="users-count">0</p>
+                    <p class="mt-2 text-purple-200">Usuários Cadastrados</p>
+                </div>
+                <div class="text-center stats-card">
+                    <p class="text-4xl font-bold text-white stats-number" id="rides-count">0</p>
+                    <p class="mt-2 text-purple-200">Viagens Realizadas</p>
+                </div>
+                <div class="text-center stats-card">
+                    <p class="text-4xl font-bold text-white stats-number" id="drivers-count">0</p>
+                    <p class="mt-2 text-purple-200">Motoristas Ativos</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:text-center">
+                <h2 class="text-base text-purple-600 font-semibold tracking-wide uppercase">Benefícios</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gradient sm:text-4xl">
+                    Por que escolher o Move?
+                </p>
+            </div>
+
+            <div class="mt-10">
+                <div class="space-y-10 md:space-y-0 md:grid md:grid-cols-3 md:gap-x-8 md:gap-y-10">
+                    <!-- Feature 1 -->
+                    <div class="relative feature-card">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-purple-600 text-white">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        </div>
+                        <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Segurança</p>
+                        <p class="mt-2 ml-16 text-base text-gray-500">
+                            Todos os motoristas são verificados e as viagens são monitoradas em tempo real.
+                        </p>
+                    </div>
+
+                    <!-- Feature 2 -->
+                    <div class="relative feature-card">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-purple-600 text-white">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Preços Justos</p>
+                        <p class="mt-2 ml-16 text-base text-gray-500">
+                            Tarifas transparentes e competitivas para todas as viagens.
+                        </p>
+                    </div>
+
+                    <!-- Feature 3 -->
+                    <div class="relative feature-card">
+                        <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-purple-600 text-white">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                        </div>
+                        <p class="ml-16 text-lg leading-6 font-medium text-gray-900">Rapidez</p>
+                        <p class="mt-2 ml-16 text-base text-gray-500">
+                            Encontre motoristas próximos e chegue ao seu destino rapidamente.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Section -->
+    <div class="bg-purple-50 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="lg:grid lg:grid-cols-2 lg:gap-8 lg:items-center">
+                <div class="relative">
+                    <h2 class="text-3xl font-extrabold text-purple-900 sm:text-4xl">
+                        Baixe nosso aplicativo
+                    </h2>
+                    <p class="mt-3 text-lg text-gray-500">
+                        Tenha o Move sempre com você. Solicite corridas, acompanhe sua viagem e muito mais direto do seu celular.
+                    </p>
+                    <div class="mt-8 flex space-x-4">
+                        <a href="#" class="download-button flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 md:py-4 md:text-lg md:px-8">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.08-.46-2.07-.48-3.2 0-1.42.61-2.16.44-3.04-.35C4.26 16.96 3.85 12.37 6.56 9.86c1.58-1.46 3.28-1.12 4.33-1.12 1.04 0 2.76-.35 4.33 1.12 2.71 2.51 2.3 7.1-1.17 10.42zM12.01 8.26c-.15-1.6.7-3.15 2.15-3.96C15.63 3.48 17.57 4 18.87 5.3c-1.3 1.22-2.26 2.87-2.11 4.48-.09.06-.19.11-.28.17-1.12-.74-2.87-.99-4.47-1.69z"/>
+                            </svg>
+                            App Store
+                        </a>
+                        <a href="#" class="download-button flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 md:py-4 md:text-lg md:px-8">
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3.5 20.5v-17c0-.55.45-1 1-1h15c.55 0 1 .45 1 1v17c0 .55-.45 1-1 1h-15c-.55 0-1-.45-1-1zm16-15.5h-15v14h15v-14z"/>
+                                <path d="M12 16.5l-4-4h8z"/>
+                            </svg>
+                            Google Play
+                        </a>
+                    </div>
+                </div>
+                <div class="mt-10 lg:mt-0 relative">
+                    <div class="relative mx-auto w-full rounded-lg shadow-lg lg:max-w-md">
+                        <div class="relative block w-full bg-white rounded-lg overflow-hidden">
+                            <img class="w-full" src="/images/app-preview.jpg" alt="Preview do aplicativo">
+                            <div class="absolute inset-0 w-full h-full flex items-center justify-center">
+                                <button type="button" class="flex items-center justify-center h-16 w-16 rounded-full bg-white bg-opacity-75 transition-colors hover:bg-opacity-100">
+                                    <svg class="h-8 w-8 text-purple-600" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Testimonials Section -->
+    <div class="py-16 testimonials-section">
+        <div class="overlay"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base text-purple-600 font-semibold tracking-wide uppercase">Depoimentos</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gradient sm:text-4xl">
+                    O que nossos usuários dizem
+                </p>
+            </div>
+            <div class="mt-12 relative">
+                <!-- Carrossel de Depoimentos -->
+                <div class="testimonials-carousel overflow-hidden" 
+                     role="region" 
+                     aria-label="Depoimentos dos usuários"
+                     tabindex="0">
+                    <div class="testimonials-track flex transition-transform duration-500"
+                         role="presentation">
+                        <!-- Depoimento 1 -->
+                        <div class="testimonial-slide w-full md:w-1/3 flex-shrink-0 px-4"
+                             role="tabpanel"
+                             aria-label="Depoimento 1 de 5">
+                            <div class="bg-purple-50 rounded-xl p-8 transform hover:-translate-y-1 transition-all duration-300">
+                                <div class="flex items-center mb-6">
+                                    <img class="h-12 w-12 rounded-full" src="/images/testimonials/user1.jpg" alt="Usuário">
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-medium text-purple-900">Ana Silva</h3>
+                                        <p class="text-sm text-purple-600">Passageira</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">"Uso o Move todos os dias para ir ao trabalho. O serviço é excelente, motoristas educados e preços justos. Recomendo!"</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Depoimento 2 -->
+                        <div class="testimonial-slide w-full md:w-1/3 flex-shrink-0 px-4"
+                             role="tabpanel"
+                             aria-label="Depoimento 2 de 5">
+                            <div class="bg-purple-50 rounded-xl p-8 transform hover:-translate-y-1 transition-all duration-300">
+                                <div class="flex items-center mb-6">
+                                    <img class="h-12 w-12 rounded-full" src="/images/testimonials/user2.jpg" alt="Usuário">
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-medium text-purple-900">Carlos Santos</h3>
+                                        <p class="text-sm text-purple-600">Motorista</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">"Como motorista, o Move me proporcionou flexibilidade e uma renda extra. A plataforma é muito fácil de usar!"</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Depoimento 3 -->
+                        <div class="testimonial-slide w-full md:w-1/3 flex-shrink-0 px-4"
+                             role="tabpanel"
+                             aria-label="Depoimento 3 de 5">
+                            <div class="bg-purple-50 rounded-xl p-8 transform hover:-translate-y-1 transition-all duration-300">
+                                <div class="flex items-center mb-6">
+                                    <img class="h-12 w-12 rounded-full" src="/images/testimonials/user3.jpg" alt="Usuário">
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-medium text-purple-900">Marina Costa</h3>
+                                        <p class="text-sm text-purple-600">Passageira</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">"Me sinto muito segura usando o Move. O rastreamento em tempo real e o suporte 24h fazem toda a diferença!"</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Depoimento 4 -->
+                        <div class="testimonial-slide w-full md:w-1/3 flex-shrink-0 px-4"
+                             role="tabpanel"
+                             aria-label="Depoimento 4 de 5">
+                            <div class="bg-purple-50 rounded-xl p-8 transform hover:-translate-y-1 transition-all duration-300">
+                                <div class="flex items-center mb-6">
+                                    <img class="h-12 w-12 rounded-full" src="/images/testimonials/user4.jpg" alt="Usuário">
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-medium text-purple-900">Pedro Oliveira</h3>
+                                        <p class="text-sm text-purple-600">Motorista</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">"A plataforma é muito profissional. Recebo pagamentos em dia e o suporte sempre me ajuda quando preciso."</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Depoimento 5 -->
+                        <div class="testimonial-slide w-full md:w-1/3 flex-shrink-0 px-4"
+                             role="tabpanel"
+                             aria-label="Depoimento 5 de 5">
+                            <div class="bg-purple-50 rounded-xl p-8 transform hover:-translate-y-1 transition-all duration-300">
+                                <div class="flex items-center mb-6">
+                                    <img class="h-12 w-12 rounded-full" src="/images/testimonials/user5.jpg" alt="Usuário">
+                                    <div class="ml-4">
+                                        <h3 class="text-lg font-medium text-purple-900">Julia Mendes</h3>
+                                        <p class="text-sm text-purple-600">Passageira</p>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">"Preços justos e motoristas sempre pontuais. Uso para ir à faculdade e nunca tive problemas!"</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Botões de navegação -->
+                <button class="absolute top-1/2 -left-4 transform -translate-y-1/2" 
+                        id="prevBtn"
+                        aria-label="Depoimento anterior"
+                        title="Ver depoimento anterior">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                </button>
+                <button class="absolute top-1/2 -right-4 transform -translate-y-1/2" 
+                        id="nextBtn"
+                        aria-label="Próximo depoimento"
+                        title="Ver próximo depoimento">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </button>
+                <!-- Indicadores de slide -->
+                <div class="testimonials-indicators" role="tablist" aria-label="Navegação dos depoimentos">
+                    <button class="indicator active" role="tab" aria-selected="true" aria-label="Grupo 1 de depoimentos"></button>
+                    <button class="indicator" role="tab" aria-selected="false" aria-label="Grupo 2 de depoimentos"></button>
+                    <button class="indicator" role="tab" aria-selected="false" aria-label="Grupo 3 de depoimentos"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FAQ Section -->
+    <div class="bg-purple-50 py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base text-purple-600 font-semibold tracking-wide uppercase">FAQ</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gradient sm:text-4xl">
+                    Perguntas Frequentes
+                </p>
+            </div>
+            <div class="mt-12 max-w-3xl mx-auto">
+                <div class="space-y-4">
+                    <!-- FAQ Item 1 -->
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                        <button class="flex justify-between items-center w-full text-left">
+                            <span class="text-lg font-medium text-purple-900">Como funciona o pagamento?</span>
+                            <svg class="w-6 h-6 text-purple-600 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="mt-4 text-gray-600 hidden">
+                            Aceitamos pagamentos em dinheiro e cartão. Você pode cadastrar seus cartões no app para pagamentos automáticos. O valor é calculado com base na distância e tempo da viagem.
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ Item 2 -->
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                        <button class="flex justify-between items-center w-full text-left">
+                            <span class="text-lg font-medium text-purple-900">Como me tornar um motorista?</span>
+                            <svg class="w-6 h-6 text-purple-600 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="mt-4 text-gray-600 hidden">
+                            Para ser motorista, você precisa ter CNH com EAR, documentação do veículo em dia e passar por nossa verificação de antecedentes. O cadastro é rápido e pode ser feito pelo app.
+                        </div>
+                    </div>
+                    
+                    <!-- FAQ Item 3 -->
+                    <div class="faq-item bg-white p-6 rounded-lg shadow-sm">
+                        <button class="flex justify-between items-center w-full text-left">
+                            <span class="text-lg font-medium text-purple-900">O serviço é seguro?</span>
+                            <svg class="w-6 h-6 text-purple-600 transform transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+                        <div class="mt-4 text-gray-600 hidden">
+                            Sim! Todos os motoristas são verificados e as viagens são monitoradas em tempo real. Você pode compartilhar sua localização com contatos de confiança e temos suporte 24h.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Coverage Map Section -->
+    <div class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h2 class="text-base text-purple-600 font-semibold tracking-wide uppercase">Área de Cobertura</h2>
+                <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gradient sm:text-4xl">
+                    Onde você pode encontrar o Move
+                </p>
+                <p class="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
+                    Estamos presentes nas principais cidades e expandindo cada vez mais.
+                </p>
+            </div>
+            <div class="mt-12 relative h-96 rounded-lg overflow-hidden shadow-lg coverage-map-container">
+                <div id="coverage-map" class="absolute inset-0"></div>
+                <div class="absolute inset-0 bg-gradient-to-b from-transparent to-purple-800 opacity-20"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-purple-800">
+        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center">
+                <div class="text-white">
+                    <p class="text-sm">&copy; 2024 Move. Todos os direitos reservados.</p>
+                </div>
+                <div class="flex space-x-6">
+                    <a href="#" class="text-purple-200 hover:text-white">
+                        Sobre
+                    </a>
+                    <a href="#" class="text-purple-200 hover:text-white">
+                        Termos
+                    </a>
+                    <a href="#" class="text-purple-200 hover:text-white">
+                        Privacidade
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <script src="/js/home.js"></script>
+</body>
+</html> 

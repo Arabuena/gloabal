@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solicitar Corrida</title>
+    <link rel="stylesheet" href="/css/styles.css?v=<%= Date.now() %>">
+    <script src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsKey %>&libraries=places"></script>
+</head>
+<body>
+    <div class="request-ride-container">
+        <header>
+            <nav>
+                <a href="/passenger/dashboard" class="back-btn">← Voltar</a>
+                <h1>Solicitar Corrida</h1>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Mapa com localização atual -->
+            <section class="current-location-section">
+                <h3>Sua Localização Atual</h3>
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+                <div id="current-address" class="current-address">
+                    Obtendo sua localização...
+                </div>
+            </section>
+
+            <div class="ride-form">
+                <form id="requestRideForm">
+                    <input type="hidden" id="originalLat" name="originalLat">
+                    <input type="hidden" id="originalLng" name="originalLng">
+                    <input type="hidden" id="originalAddress" name="originalAddress">
+
+                    <div class="form-group">
+                        <label for="origin">Ponto de Partida</label>
+                        <input type="text" id="origin" name="origin" required>
+                        <button type="button" id="useCurrentLocation" class="secondary-btn">
+                            Usar Localização Atual
+                        </button>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="destination">Destino</label>
+                        <input type="text" id="destination" name="destination" required>
+                    </div>
+
+                    <div class="ride-preview" id="ridePreview" style="display: none;">
+                        <h3>Detalhes da Corrida</h3>
+                        <div class="preview-grid">
+                            <div class="preview-item">
+                                <span>Preço Estimado</span>
+                                <strong id="priceEstimate">R$ --,--</strong>
+                            </div>
+                            <div class="preview-item">
+                                <span>Tempo Estimado</span>
+                                <strong id="timeEstimate">-- min</strong>
+                            </div>
+                            <div class="preview-item">
+                                <span>Distância</span>
+                                <strong id="distanceEstimate">-- km</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="payment-methods">
+                        <h3>Forma de Pagamento</h3>
+                        <select id="paymentMethod" name="paymentMethod" required>
+                            <option value="">Selecione...</option>
+                            <% user.paymentMethods.forEach(method => { %>
+                                <option value="<%= method._id %>">
+                                    <%= method.type === 'credit_card' ? 
+                                        `Cartão: ${method.details.number}` : 
+                                        'Dinheiro' %>
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="primary-btn" id="requestBtn" disabled>
+                        Solicitar Corrida
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let map, currentLocationMarker, originMarker, destinationMarker, directionsService, directionsRenderer;
+        let userCurrentLocation = null;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 15,
+                center: { lat: -23.550520, lng: -46.633308 },
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+
+            // Obter localização atual
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userCurrentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // Salvar localização original
+                        document.getElementById('originalLat').value = userCurrentLocation.lat;
+                        document.getElementById('originalLng').value = userCurrentLocation.lng;
+
+                        // Atualizar mapa
+                        map.setCenter(userCurrentLocation);
+                        
+                        // Adicionar marcador
+                        currentLocationMarker = new google.maps.Marker({
+                            position: userCurrentLocation,
+                            map: map,
+                            title: 'Sua localização',
+                            icon: {
+                                path: google.maps.SymbolPath.CIRCLE,
+                                scale: 10,
+                                fillColor: '#4285F4',
+                                fillOpacity: 1,
+                                strokeColor: '#ffffff',
+                                strokeWeight: 2
+                            }
+                        });
+
+                        // Obter endereço
+                        const geocoder = new google.maps.Geocoder();
+                        geocoder.geocode({ location: userCurrentLocation }, (results, status) => {
+                            if (status === 'OK' && results[0]) {
+                                const address = results[0].formatted_address;
+                                document.getElementById('current-address').textContent = address;
+                                document.getElementById('originalAddress').value = address;
+                                document.getElementById('origin').value = address;
+                            }
+                        });
+                    },
+                    (error) => {
+                        console.error('Erro ao obter localização:', error);
+                        document.getElementById('current-address').textContent = 
+                            'Não foi possível obter sua localização';
+                    }
+                );
+            }
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: true
+            });
+
+            setupAutocomplete();
+        }
+
+        // Handler do formulário
+        document.getElementById('requestRideForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            try {
+                const response = await fetch('/api/rides/request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        origin: {
+                            address: document.getElementById('origin').value,
+                            lat: originMarker.getPosition().lat(),
+                            lng: originMarker.getPosition().lng()
+                        },
+                        destination: {
+                            address: document.getElementById('destination').value,
+                            lat: destinationMarker.getPosition().lat(),
+                            lng: destinationMarker.getPosition().lng()
+                        },
+                        originalLocation: {
+                            address: document.getElementById('originalAddress').value,
+                            lat: parseFloat(document.getElementById('originalLat').value),
+                            lng: parseFloat(document.getElementById('originalLng').value)
+                        },
+                        paymentMethod: document.getElementById('paymentMethod').value
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.href = `/passenger/ride/${data.ride._id}`;
+                } else {
+                    alert('Erro ao solicitar corrida: ' + data.message);
+                }
+            } catch (error) {
+                console.error('Erro ao solicitar corrida:', error);
+                alert('Erro ao solicitar corrida. Tente novamente.');
+            }
+        };
+
+        // Inicializa o mapa quando a página carregar
+        window.onload = initMap;
+
+        // Configura autocomplete nos campos
+        function setupAutocomplete() {
+            const input = document.getElementById('origin');
+            const autocomplete = new google.maps.places.Autocomplete(input);
+            
+            autocomplete.addListener('place_changed', () => {
+                const place = autocomplete.getPlace();
+                if (!place.geometry) return;
+
+                const location = {
+                    lat: place.geometry.location.lat(),
+                    lng: place.geometry.location.lng(),
+                    address: place.formatted_address
+                };
+
+                updateOriginMarker(location);
+
+                if (originMarker && destinationMarker) {
+                    updateRoute();
+                    updatePriceEstimate();
+                }
+            });
+        }
+
+        // Atualiza marcadores e rota
+        async function updateRoute() {
+            const request = {
+                origin: { lat: originMarker.position.lat(), lng: originMarker.position.lng() },
+                destination: { lat: destinationMarker.position.lat(), lng: destinationMarker.position.lng() },
+                travelMode: 'DRIVING'
+            };
+
+            try {
+                const result = await directionsService.route(request);
+                directionsRenderer.setDirections(result);
+                document.getElementById('requestBtn').disabled = false;
+            } catch (error) {
+                console.error('Erro ao calcular rota:', error);
+            }
+        }
+
+        // Atualiza estimativa de preço
+        async function updatePriceEstimate() {
+            try {
+                const response = await fetch('/api/passenger/estimate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        origin: originMarker.position,
+                        destination: destinationMarker.position
+                    })
+                });
+
+                const data = await response.json();
+                
+                document.getElementById('ridePreview').style.display = 'block';
+                document.getElementById('priceEstimate').textContent = 
+                    `R$ ${data.price.toFixed(2)}`;
+                document.getElementById('timeEstimate').textContent = 
+                    `${Math.round(data.duration)} min`;
+                document.getElementById('distanceEstimate').textContent = 
+                    `${(data.distance).toFixed(1)} km`;
+            } catch (error) {
+                console.error('Erro ao estimar preço:', error);
+            }
+        }
+
+        // Botão para usar localização atual
+        document.getElementById('useCurrentLocation').addEventListener('click', () => {
+            if (userCurrentLocation) {
+                const geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ location: userCurrentLocation }, (results, status) => {
+                    if (status === 'OK' && results[0]) {
+                        document.getElementById('origin').value = results[0].formatted_address;
+                        updateOriginMarker(userCurrentLocation);
+                    }
+                });
+            }
+        });
+
+        // Atualiza marcador de origem
+        function updateOriginMarker(location) {
+            if (originMarker) {
+                google.maps.event.clearInstance();
+            }
+            originMarker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: 'Ponto de partida',
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                }
+            });
+        }
+
+        // Atualiza marcador de destino
+        function updateDestinationMarker(location) {
+            if (destinationMarker) {
+                google.maps.event.clearInstance();
+            }
+            destinationMarker = new google.maps.Marker({
+                position: location,
+                map: map,
+                title: 'Destino',
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 10,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

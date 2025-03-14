@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://maps.googleapis.com 'unsafe-inline';">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+    <title>Move - Seu app de transporte</title>
+    <link rel="stylesheet" href="/css/driver-dashboard.css">
+    <style>
+        /* Estilos base */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+
+        /* Hero Section */
+        .hero-section {
+            position: relative;
+            height: 100vh;
+            background: url('/images/hero-image.jpg') no-repeat center center;
+            background-size: cover;
+            color: white;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            padding: 2rem;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero-content p {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Estatísticas */
+        .stats-section {
+            padding: 6rem 2rem;
+            background: #f8f9fa;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .stat-item span {
+            display: block;
+            font-size: 3rem;
+            font-weight: bold;
+            color: #7C3AED;
+            margin-bottom: 0.5rem;
+        }
+
+        /* App Preview */
+        .app-preview {
+            padding: 6rem 2rem;
+            background: white;
+            text-align: center;
+        }
+
+        .app-preview img {
+            max-width: 300px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .app-preview img:hover {
+            transform: translateY(-10px);
+        }
+
+        /* Mapa de Cobertura */
+        .coverage-section {
+            padding: 6rem 2rem;
+            background: #f8f9fa;
+        }
+
+        #coverage-map {
+            height: 400px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* Download Section */
+        .download-section {
+            padding: 6rem 2rem;
+            background: #7C3AED;
+            color: white;
+            text-align: center;
+        }
+
+        .store-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .store-buttons img {
+            height: 60px;
+            transition: transform 0.3s ease;
+        }
+
+        .store-buttons img:hover {
+            transform: scale(1.1);
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-content p {
+                font-size: 1.2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Adicione ao CSS existente */
+        .how-it-works {
+            padding: 6rem 2rem;
+            background: white;
+            text-align: center;
+        }
+
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 3rem auto 0;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            border-radius: 1rem;
+            background: #f8f9fa;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .step:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            background: #7C3AED;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .marker-icon {
+            width: 40px;
+            height: 40px;
+            filter: brightness(0) invert(1);
+        }
+
+        .step h3 {
+            color: #1a1a1a;
+            margin: 0 0 1rem;
+        }
+
+        .step p {
+            color: #666;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Animação de pulso para os ícones */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .step-icon {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsividade */
+        @media (max-width: 768px) {
+            .steps-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .step {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <div class="hero-content">
+                <h1>Seu destino, nossa prioridade</h1>
+                <p>Viagens seguras e confortáveis com os melhores motoristas da cidade</p>
+                <div class="store-buttons">
+                    <a href="#" class="play-store">
+                        <img src="/images/google-play.png" alt="Disponível no Google Play">
+                    </a>
+                    <a href="#" class="app-store">
+                        <img src="/images/app-store.png" alt="Baixar na App Store">
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estatísticas -->
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span id="users-count">0</span>
+                    <p>Usuários Ativos</p>
+                </div>
+                <div class="stat-item">
+                    <span id="rides-count">0</span>
+                    <p>Corridas Realizadas</p>
+                </div>
+                <div class="stat-item">
+                    <span id="drivers-count">0</span>
+                    <p>Motoristas Parceiros</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Adicione após a seção de estatísticas -->
+        <section class="how-it-works">
+            <h2>Como funciona</h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-icon">
+                        <img src="/images/origin-marker.svg" alt="Origem" class="marker-icon">
+                    </div>
+                    <h3>1. Solicite uma corrida</h3>
+                    <p>Informe seu local de partida e destino</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">
+                        <img src="/images/car-marker.svg" alt="Motorista" class="marker-icon">
+                    </div>
+                    <h3>2. Motorista a caminho</h3>
+                    <p>Um motorista próximo aceitará sua corrida</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">
+                        <img src="/images/destination-marker.svg" alt="Destino" class="marker-icon">
+                    </div>
+                    <h3>3. Chegue ao destino</h3>
+                    <p>Viaje com segurança e conforto</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- App Preview -->
+        <section class="app-preview">
+            <h2>Conheça nosso aplicativo</h2>
+            <img src="/images/app-preview.jpg" alt="Preview do aplicativo Move">
+        </section>
+
+        <!-- Mapa de Cobertura -->
+        <section class="coverage-section">
+            <h2>Área de Cobertura</h2>
+            <div id="coverage-map"></div>
+        </section>
+
+        <!-- Download -->
+        <section class="download-section">
+            <h2>Baixe agora e comece a viajar</h2>
+            <p>Disponível para Android e iOS</p>
+            <div class="store-buttons">
+                <a href="#" class="play-store">
+                    <img src="/images/google-play.png" alt="Disponível no Google Play">
+                </a>
+                <a href="#" class="app-store">
+                    <img src="/images/app-store.png" alt="Baixar na App Store">
+                </a>
+            </div>
+        </section>
+
+        <!-- Marcadores do Mapa (hidden) -->
+        <div class="map-markers" style="display: none;">
+            <img id="origin-marker" src="/images/origin-marker.svg" alt="">
+            <img id="destination-marker" src="/images/destination-marker.svg" alt="">
+            <img id="car-marker" src="/images/car-marker.svg" alt="">
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
+    <script src="/js/home.js"></script>
+</body>
+</html> 

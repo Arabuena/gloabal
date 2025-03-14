@@ -1,0 +1,118 @@
+/* Estilos específicos do dashboard do motorista */
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+.marker-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    cursor: pointer;
+    transform-origin: center;
+    transition: transform 0.3s ease;
+}
+
+.marker-icon:hover {
+    transform: scale(1.1);
+}
+
+.origin-marker, .destination-marker {
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3));
+}
+
+.car-marker {
+    animation: pulse 2s infinite;
+}
+
+.car-marker svg {
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.4));
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Estilo para o rastro do motorista */
+.route-path {
+    stroke-dasharray: 8;
+    animation: dash 30s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -1000;
+    }
+}
+
+/* Animações e transições */
+.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#error-message {
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+#error-message:not(.hidden) {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+#ride-info:not(.hidden),
+#driver-info:not(.hidden) {
+    animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.rides-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.loading-text::after {
+    content: 'Carregando...';
+}
+
+.offline-text::after {
+    content: 'Move - Modo Offline';
+}
+
+/* Melhorias de acessibilidade */
+.marker-icon:focus {
+    outline: 2px solid rgba(124, 58, 237, 0.5);
+    outline-offset: 2px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .marker-icon {
+        width: 40px;
+        height: 40px;
+    }
+} 

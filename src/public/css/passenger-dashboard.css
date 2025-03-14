@@ -1,0 +1,134 @@
+/* Estilos específicos do dashboard do passageiro */
+#map {
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+}
+
+.pac-container {
+    z-index: 1051 !important;
+}
+
+/* Estiliza os inputs do Google Places Autocomplete */
+.pac-item {
+    padding: 8px;
+    font-family: inherit;
+}
+
+.pac-item:hover {
+    background-color: #F3F4F6;
+}
+
+.pac-item-selected {
+    background-color: #EDE9FE;
+}
+
+/* Ajusta o tamanho dos ícones dos marcadores */
+.marker-icon {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.marker-icon:hover {
+    transform: scale(1.1);
+}
+
+/* Estiliza os marcadores de origem e destino */
+.origin-marker {
+    animation: pulse 2s infinite;
+}
+
+.destination-marker {
+    animation: bounce 1s infinite;
+}
+
+.origin-marker svg,
+.destination-marker svg {
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.3));
+}
+
+.car-marker {
+    width: 48px;
+    height: 48px;
+    animation: pulse 2s infinite;
+}
+
+.car-marker svg {
+    filter: drop-shadow(0 2px 4px rgba(124, 58, 237, 0.4));
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes bounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Estilo para o rastro do motorista */
+.driver-path {
+    stroke-dasharray: 4, 4;
+    animation: dash 1s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: -8;
+    }
+}
+
+/* Animações e transições */
+.hidden {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+#error-message {
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+}
+
+#error-message:not(.hidden) {
+    transform: translateY(0);
+    opacity: 1;
+    visibility: visible;
+}
+
+#ride-info:not(.hidden) {
+    animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.loading-text::after {
+    content: 'Carregando...';
+}
+
+.waiting-text::after {
+    content: 'Move - Buscando motorista';
+} 
