@@ -1,7 +1,15 @@
 const socketIO = require('socket.io');
 
 function configureSocket(server) {
-    const io = socketIO(server);
+    const io = socketIO(server, {
+        cors: {
+            origin: process.env.FRONTEND_URL || "https://gloabal.onrender.com",
+            methods: ["GET", "POST"],
+            credentials: true
+        },
+        path: '/socket.io/',
+        transports: ['websocket', 'polling']
+    });
 
     io.on('connection', (socket) => {
         console.log('Um usuário conectou');

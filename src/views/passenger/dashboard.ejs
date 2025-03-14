@@ -111,7 +111,8 @@
         // Variáveis globais disponíveis para todos os scripts
         window.GLOBALS = {
             googleMapsKey: '<%= googleMapsKey %>',
-            userId: '<%= user._id %>'
+            userId: '<%= user._id %>',
+            socketUrl: '<%= process.env.NODE_ENV === "production" ? "https://gloabal.onrender.com" : "http://localhost:3000" %>'
         };
     </script>
     <script src="/js/passenger.js"></script>

@@ -205,11 +205,25 @@ function initializeMap() {
 
 // Inicialização do Socket.IO
 function initializeSocket() {
-    socket = io();
+    socket = io(window.GLOBALS.socketUrl, {
+        path: '/socket.io/',
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    });
     
     if (window.GLOBALS.userId) {
         socket.emit('join-passenger-room', window.GLOBALS.userId);
     }
+
+    socket.on('connect', () => {
+        console.log('Conectado ao servidor Socket.IO');
+    });
+
+    socket.on('connect_error', (error) => {
+        console.error('Erro de conexão Socket.IO:', error);
+    });
 
     // Socket.IO event listeners
     socket.on('ride-status-update', (data) => {
