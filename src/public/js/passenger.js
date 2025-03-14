@@ -19,7 +19,7 @@ const formatDuration = (minutes) => {
 };
 
 // Variáveis globais
-let map, socket, originMarker, destinationMarker;
+let map, socket, originMarker, destinationMarker, ICONS;
 
 // Handlers dos botões
 document.addEventListener('DOMContentLoaded', () => {
@@ -77,114 +77,34 @@ async function startRideToFavorite(placeId) {
     }
 }
 
-// Definição dos ícones SVG
-const ICONS = {
-    origin: {
-        path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-        fillColor: '#4CAF50',
-        fillOpacity: 1,
-        strokeWeight: 1,
-        strokeColor: '#fff',
-        scale: 1.5,
-        anchor: new google.maps.Point(12, 22)
-    },
-    destination: {
-        path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
-        fillColor: '#F44336',
-        fillOpacity: 1,
-        strokeWeight: 1,
-        strokeColor: '#fff',
-        scale: 1.5,
-        anchor: new google.maps.Point(12, 22)
-    }
-};
-
-// Atualiza marcador de origem
-function updateOriginMarker(location) {
-    if (originMarker) {
-        originMarker.setMap(null);
-    }
-    
-    originMarker = new google.maps.Marker({
-        position: { lat: location.lat, lng: location.lng },
-        map: map,
-        title: 'Origem',
-        icon: ICONS.origin,
-        animation: google.maps.Animation.DROP,
-        label: {
-            text: 'O',
-            color: '#ffffff',
-            fontSize: '14px'
-        }
-    });
-
-    map.setCenter({ lat: location.lat, lng: location.lng });
-}
-
-// Atualiza marcador de destino
-function updateDestinationMarker(location) {
-    if (destinationMarker) {
-        destinationMarker.setMap(null);
-    }
-    
-    destinationMarker = new google.maps.Marker({
-        position: { lat: location.lat, lng: location.lng },
-        map: map,
-        title: 'Destino',
-        icon: ICONS.destination,
-        animation: google.maps.Animation.DROP,
-        label: {
-            text: 'D',
-            color: '#ffffff',
-            fontSize: '14px'
-        }
-    });
-
-    // Ajusta o zoom para mostrar ambos os marcadores
-    if (originMarker) {
-        const bounds = new google.maps.LatLngBounds();
-        bounds.extend(originMarker.getPosition());
-        bounds.extend(destinationMarker.getPosition());
-        map.fitBounds(bounds);
-    }
-}
-
-// Função para animar o marcador quando selecionado
-function bounceMarker(marker) {
-    if (marker) {
-        marker.setAnimation(google.maps.Animation.BOUNCE);
-        setTimeout(() => {
-            marker.setAnimation(null);
-        }, 1500);
-    }
-}
-
-// Adiciona eventos de clique nos marcadores
-function setupMarkerEvents(marker, type) {
-    marker.addListener('click', () => {
-        bounceMarker(marker);
-        
-        // Mostra um InfoWindow com informações
-        const infoWindow = new google.maps.InfoWindow({
-            content: `
-                <div style="padding: 10px;">
-                    <h3 style="margin: 0 0 5px;">${type === 'origin' ? 'Origem' : 'Destino'}</h3>
-                    <p style="margin: 0;">${marker.getPosition().toJSON().lat.toFixed(6)}, 
-                       ${marker.getPosition().toJSON().lng.toFixed(6)}</p>
-                </div>
-            `
-        });
-        
-        infoWindow.open(map, marker);
-    });
-}
-
 // Inicialização principal do mapa e funcionalidades
 function initializeMap() {
     if (!google || !google.maps) {
         console.error('Google Maps não está carregado');
         return;
     }
+
+    // Definição dos ícones SVG (movido para dentro da função initializeMap)
+    ICONS = {
+        origin: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: '#4CAF50',
+            fillOpacity: 1,
+            strokeWeight: 1,
+            strokeColor: '#fff',
+            scale: 1.5,
+            anchor: new google.maps.Point(12, 22)
+        },
+        destination: {
+            path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+            fillColor: '#F44336',
+            fillOpacity: 1,
+            strokeWeight: 1,
+            strokeColor: '#fff',
+            scale: 1.5,
+            anchor: new google.maps.Point(12, 22)
+        }
+    };
 
     // Inicializa o mapa
     map = new google.maps.Map(document.getElementById('map'), {
@@ -438,4 +358,86 @@ const userId = document.querySelector('[data-user-id]')?.dataset.userId;
 
 if (userId) {
     socket.emit('join-passenger-room', userId);
+}
+
+// Atualiza marcador de origem
+function updateOriginMarker(location) {
+    if (!ICONS) return; // Verifica se os ícones já foram definidos
+
+    if (originMarker) {
+        originMarker.setMap(null);
+    }
+    
+    originMarker = new google.maps.Marker({
+        position: { lat: location.lat, lng: location.lng },
+        map: map,
+        title: 'Origem',
+        icon: ICONS.origin,
+        animation: google.maps.Animation.DROP,
+        label: {
+            text: 'O',
+            color: '#ffffff',
+            fontSize: '14px'
+        }
+    });
+
+    map.setCenter({ lat: location.lat, lng: location.lng });
+}
+
+// Atualiza marcador de destino
+function updateDestinationMarker(location) {
+    if (destinationMarker) {
+        destinationMarker.setMap(null);
+    }
+    
+    destinationMarker = new google.maps.Marker({
+        position: { lat: location.lat, lng: location.lng },
+        map: map,
+        title: 'Destino',
+        icon: ICONS.destination,
+        animation: google.maps.Animation.DROP,
+        label: {
+            text: 'D',
+            color: '#ffffff',
+            fontSize: '14px'
+        }
+    });
+
+    // Ajusta o zoom para mostrar ambos os marcadores
+    if (originMarker) {
+        const bounds = new google.maps.LatLngBounds();
+        bounds.extend(originMarker.getPosition());
+        bounds.extend(destinationMarker.getPosition());
+        map.fitBounds(bounds);
+    }
+}
+
+// Função para animar o marcador quando selecionado
+function bounceMarker(marker) {
+    if (marker) {
+        marker.setAnimation(google.maps.Animation.BOUNCE);
+        setTimeout(() => {
+            marker.setAnimation(null);
+        }, 1500);
+    }
+}
+
+// Adiciona eventos de clique nos marcadores
+function setupMarkerEvents(marker, type) {
+    marker.addListener('click', () => {
+        bounceMarker(marker);
+        
+        // Mostra um InfoWindow com informações
+        const infoWindow = new google.maps.InfoWindow({
+            content: `
+                <div style="padding: 10px;">
+                    <h3 style="margin: 0 0 5px;">${type === 'origin' ? 'Origem' : 'Destino'}</h3>
+                    <p style="margin: 0;">${marker.getPosition().toJSON().lat.toFixed(6)}, 
+                       ${marker.getPosition().toJSON().lng.toFixed(6)}</p>
+                </div>
+            `
+        });
+        
+        infoWindow.open(map, marker);
+    });
 } 
