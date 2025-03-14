@@ -1,14 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 
-// Apenas diretórios essenciais
 const directories = [
-    'src/views',
-    'src/views/passenger',
-    'src/views/driver',
-    'src/public',
     'src/public/js',
-    'src/public/css'
+    'src/public/css',
+    'src/views/passenger'
 ];
 
 console.log('\n=== Verificando diretórios necessários ===');
