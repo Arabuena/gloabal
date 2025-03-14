@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const auth = require('../middleware/auth');
 
 // Log detalhado de todas as requisições
 router.use((req, res, next) => {
@@ -150,65 +151,34 @@ router.post('/login/passenger', async (req, res) => {
     }
 });
 
-// Dashboards protegidos
-router.get('/driver/dashboard', (req, res) => {
-    console.log('Acessando dashboard do motorista');
-    const token = req.cookies.token;
-    
-    if (!token) {
-        console.log('Token não encontrado, redirecionando para login');
-        return res.redirect('/driver');
-    }
-    
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Token decodificado:', decoded);
-        
-        if (decoded.role !== 'driver') {
-            console.log('Usuário não é motorista, redirecionando');
-            return res.redirect('/driver');
-        }
-        
-        console.log('Renderizando dashboard do motorista');
-        res.render('driver/dashboard', {
-            user: decoded,
-            googleMapsKey: process.env.GOOGLE_MAPS_API_KEY
-        });
-    } catch (error) {
-        console.error('Erro ao verificar token:', error);
-        res.clearCookie('token');
-        res.redirect('/driver');
-    }
+// Rotas de autenticação
+router.get('/login', (req, res) => {
+    res.render('auth/login');
 });
 
-router.get('/passenger/dashboard', (req, res) => {
-    console.log('Acessando dashboard do passageiro');
-    const token = req.cookies.token;
-    
-    if (!token) {
-        console.log('Token não encontrado, redirecionando para login');
-        return res.redirect('/passenger');
-    }
-    
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Token decodificado:', decoded);
-        
-        if (decoded.role !== 'passenger') {
-            console.log('Usuário não é passageiro, redirecionando');
-            return res.redirect('/passenger');
+router.get('/register', (req, res) => {
+    res.render('auth/register');
+});
+
+// Rotas do painel
+router.get('/passenger/dashboard', auth, (req, res) => {
+    res.render('passenger/dashboard', {
+        user: req.user,
+        googleMapsKey: process.env.GOOGLE_MAPS_API_KEY,
+        env: {
+            nodeEnv: process.env.NODE_ENV,
+            socketUrl: process.env.NODE_ENV === 'production' ? 
+                'https://move-ah77.onrender.com' : 
+                'http://localhost:3000'
         }
-        
-        console.log('Renderizando dashboard do passageiro');
-        res.render('passenger/dashboard', {
-            user: decoded,
-            googleMapsKey: process.env.GOOGLE_MAPS_API_KEY
-        });
-    } catch (error) {
-        console.error('Erro ao verificar token:', error);
-        res.clearCookie('token');
-        res.redirect('/passenger');
-    }
+    });
+});
+
+router.get('/driver/dashboard', auth, (req, res) => {
+    res.render('driver/dashboard', {
+        user: req.user,
+        googleMapsKey: process.env.GOOGLE_MAPS_API_KEY
+    });
 });
 
 // Logout

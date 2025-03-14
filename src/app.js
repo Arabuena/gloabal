@@ -2,13 +2,19 @@ require('dotenv').config();
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
+const mongoose = require('mongoose');
 const cors = require('cors');
-const configureSocket = require('./config/socket');
+const cookieParser = require('cookie-parser');
 const path = require('path');
-const rideRoutes = require('./routes/rideRoutes');
+const configureSocket = require('./config/socket');
+
+// Importação das rotas
+const indexRouter = require('./routes/index');
 const authRoutes = require('./routes/authRoutes');
+const rideRoutes = require('./routes/rideRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const passengerRoutes = require('./routes/passengerRoutes');
+const monitor = require('./utils/monitor');
 
 // Configurações básicas
 app.set('view engine', 'ejs');
@@ -17,11 +23,14 @@ app.set('views', path.join(__dirname, 'views'));
 // Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configuração do CORS
 app.use(cors({
-    origin: "*",
+    origin: process.env.NODE_ENV === 'production' 
+        ? 'https://move-ah77.onrender.com'
+        : 'http://localhost:3000',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -38,28 +47,44 @@ app.use((req, res, next) => {
 
 // Log de requisições
 app.use((req, res, next) => {
-    console.log(`${req.method} ${req.path}`, {
-        body: req.body,
-        cookies: req.cookies
-    });
+    monitor.request(req);
     next();
 });
 
+// Conexão com MongoDB
+console.log('Conectando ao MongoDB...');
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => {
+        monitor.log('system', 'Conectado ao MongoDB com sucesso');
+    })
+    .catch((error) => {
+        monitor.error('Erro ao conectar ao MongoDB', error);
+        process.exit(1);
+    });
+
 // Rotas
+app.use('/', indexRouter);
 app.use('/api/auth', authRoutes);
 app.use('/api/rides', rideRoutes);
-app.use('/api/driver', driverRoutes);
-app.use('/api/passenger', passengerRoutes);
+app.use('/passenger', passengerRoutes);
+app.use('/driver', driverRoutes);
+
+// Cache control para arquivos estáticos
+app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    next();
+});
 
 // Tratamento de erro 404
 app.use((req, res) => {
+    console.log('404 - Página não encontrada:', req.path);
     res.status(404).render('errors/404');
 });
 
 // Tratamento de erros
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Algo deu errado!');
+    monitor.error('Erro na aplicação', err);
+    res.status(500).json({ message: 'Erro interno do servidor' });
 });
 
 module.exports = { app, http }; 
