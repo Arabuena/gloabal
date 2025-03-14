@@ -319,7 +319,8 @@ class PassengerController {
                 page: {
                     title: 'Dashboard do Passageiro',
                     current: 'dashboard'
-                }
+                },
+                googleMapsKey: process.env.GOOGLE_MAPS_API_KEY
             });
         } catch (error) {
             monitor.error('Erro ao renderizar dashboard', error);

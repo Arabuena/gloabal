@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard do Passageiro</title>
     <link rel="stylesheet" href="/css/styles.css?v=<%= Date.now() %>">
+    <script src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsKey %>&libraries=places"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -67,12 +68,22 @@
                 <form id="rideRequestForm">
                     <div class="form-group">
                         <label>Local de Partida</label>
-                        <input type="text" id="pickup" required>
+                        <input type="text" id="pickup" required placeholder="Digite o endereço de partida">
+                        <input type="hidden" id="pickup_lat">
+                        <input type="hidden" id="pickup_lng">
                     </div>
                     
                     <div class="form-group">
                         <label>Destino</label>
-                        <input type="text" id="destination" required>
+                        <input type="text" id="destination" required placeholder="Digite o endereço de destino">
+                        <input type="hidden" id="destination_lat">
+                        <input type="hidden" id="destination_lng">
+                    </div>
+
+                    <div class="price-estimate" style="display: none;">
+                        <p>Distância estimada: <span id="distance"></span></p>
+                        <p>Tempo estimado: <span id="duration"></span></p>
+                        <p>Valor estimado: R$ <span id="price"></span></p>
                     </div>
 
                     <button type="submit">Solicitar Corrida</button>
@@ -115,11 +126,96 @@
         const rideRequestSection = document.getElementById('rideRequestSection');
         let currentRideId = null;
 
+        // Inicialização do autocomplete
+        function initializeAutocomplete() {
+            const pickupInput = document.getElementById('pickup');
+            const destinationInput = document.getElementById('destination');
+            
+            const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+                componentRestrictions: { country: 'BR' }
+            });
+            
+            const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput, {
+                componentRestrictions: { country: 'BR' }
+            });
+
+            // Listener para o local de partida
+            pickupAutocomplete.addListener('place_changed', () => {
+                const place = pickupAutocomplete.getPlace();
+                if (!place.geometry) {
+                    alert('Por favor, selecione um endereço válido da lista.');
+                    return;
+                }
+                
+                document.getElementById('pickup_lat').value = place.geometry.location.lat();
+                document.getElementById('pickup_lng').value = place.geometry.location.lng();
+                
+                calculateEstimates();
+            });
+
+            // Listener para o destino
+            destinationAutocomplete.addListener('place_changed', () => {
+                const place = destinationAutocomplete.getPlace();
+                if (!place.geometry) {
+                    alert('Por favor, selecione um endereço válido da lista.');
+                    return;
+                }
+                
+                document.getElementById('destination_lat').value = place.geometry.location.lat();
+                document.getElementById('destination_lng').value = place.geometry.location.lng();
+                
+                calculateEstimates();
+            });
+        }
+
+        // Calcular estimativas
+        function calculateEstimates() {
+            const pickup_lat = document.getElementById('pickup_lat').value;
+            const pickup_lng = document.getElementById('pickup_lng').value;
+            const destination_lat = document.getElementById('destination_lat').value;
+            const destination_lng = document.getElementById('destination_lng').value;
+
+            if (pickup_lat && pickup_lng && destination_lat && destination_lng) {
+                const directionsService = new google.maps.DirectionsService();
+                
+                const request = {
+                    origin: new google.maps.LatLng(pickup_lat, pickup_lng),
+                    destination: new google.maps.LatLng(destination_lat, destination_lng),
+                    travelMode: google.maps.TravelMode.DRIVING
+                };
+
+                directionsService.route(request, (result, status) => {
+                    if (status === google.maps.DirectionsStatus.OK) {
+                        const route = result.routes[0];
+                        const leg = route.legs[0];
+                        
+                        document.getElementById('distance').textContent = leg.distance.text;
+                        document.getElementById('duration').textContent = leg.duration.text;
+                        
+                        // Cálculo básico de preço (você pode ajustar a fórmula)
+                        const distanceInKm = leg.distance.value / 1000;
+                        const price = (2 + (distanceInKm * 2.5)).toFixed(2);
+                        document.getElementById('price').textContent = price;
+                        
+                        document.querySelector('.price-estimate').style.display = 'block';
+                    }
+                });
+            }
+        }
+
+        // Atualizar o evento de submit do formulário
         rideRequestForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const pickup = document.getElementById('pickup').value;
-            const destination = document.getElementById('destination').value;
+            const pickup_lat = document.getElementById('pickup_lat').value;
+            const pickup_lng = document.getElementById('pickup_lng').value;
+            const destination_lat = document.getElementById('destination_lat').value;
+            const destination_lng = document.getElementById('destination_lng').value;
+
+            if (!pickup_lat || !pickup_lng || !destination_lat || !destination_lng) {
+                alert('Por favor, selecione endereços válidos da lista de sugestões.');
+                return;
+            }
 
             try {
                 const response = await fetch('/api/rides/request', {
@@ -128,8 +224,21 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        pickup: { address: pickup },
-                        destination: { address: destination }
+                        pickup: {
+                            address: document.getElementById('pickup').value,
+                            location: {
+                                coordinates: [pickup_lng, pickup_lat]
+                            }
+                        },
+                        destination: {
+                            address: document.getElementById('destination').value,
+                            location: {
+                                coordinates: [destination_lng, destination_lat]
+                            }
+                        },
+                        price: parseFloat(document.getElementById('price').textContent),
+                        distance: document.getElementById('distance').textContent,
+                        duration: document.getElementById('duration').textContent
                     })
                 });
 
@@ -145,6 +254,9 @@
                 alert('Erro ao solicitar corrida');
             }
         });
+
+        // Inicializar o autocomplete quando a página carregar
+        google.maps.event.addDomListener(window, 'load', initializeAutocomplete);
 
         document.getElementById('cancelRide').addEventListener('click', async () => {
             if (!currentRideId) return;
