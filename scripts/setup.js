@@ -3,14 +3,13 @@ const path = require('path');
 
 const directories = [
     './tmp/public',
-    './tmp/public/css',
     './tmp/public/js',
+    './tmp/public/css',
     './tmp/public/img',
     './tmp/logs',
     'src/views',
     'src/views/passenger',
-    'src/views/driver',
-    'src/views/auth'
+    'src/views/driver'
 ];
 
 console.log('\n=== Criando diretórios necessários ===');

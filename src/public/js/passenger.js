@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    loadGoogleMaps();
+    initializeMap();
 });
 
 // Função para iniciar corrida para local favorito
@@ -181,12 +181,34 @@ function setupMarkerEvents(marker, type) {
     });
 }
 
+// Inicialização principal do mapa e funcionalidades
+function initializeMap() {
+    // Inicializa o mapa
+    map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: -23.550520, lng: -46.633308 }, // São Paulo
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+        zoomControl: true
+    });
+
+    // Inicializa o Socket.IO
+    initializeSocket();
+
+    // Inicializa o autocomplete
+    initializeAutocomplete();
+
+    // Tenta obter a localização do usuário
+    getCurrentLocation();
+}
+
 // Inicialização do Socket.IO
 function initializeSocket() {
     socket = io();
     
-    if (userId) {
-        socket.emit('join-passenger-room', userId);
+    if (window.GLOBALS.userId) {
+        socket.emit('join-passenger-room', window.GLOBALS.userId);
     }
 
     // Socket.IO event listeners
@@ -197,54 +219,90 @@ function initializeSocket() {
     });
 }
 
-// Inicialização do mapa
-function initMap() {
-    map = new google.maps.Map(document.getElementById('map'), {
-        center: { lat: -23.550520, lng: -46.633308 },
-        zoom: 12
-    });
+// Obter localização atual
+function getCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                map.setCenter(pos);
+                
+                // Adiciona marcador na localização atual
+                new google.maps.Marker({
+                    position: pos,
+                    map: map,
+                    title: 'Sua localização'
+                });
 
-    // Inicializa o autocomplete após o mapa estar carregado
-    initializeAutocomplete();
-    
-    // Inicializa Socket.IO após o mapa
-    initializeSocket();
+                // Atualiza o campo de endereço atual
+                reverseGeocode(pos);
+            },
+            (error) => {
+                console.error('Erro ao obter localização:', error);
+            }
+        );
+    }
 }
 
-// Função para inicializar o autocomplete
-function initializeAutocomplete() {
-    if (!google || !google.maps || !google.maps.places) {
-        console.error('Google Maps não está carregado corretamente');
-        return;
-    }
+// Geocodificação reversa
+function reverseGeocode(position) {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: position }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            document.getElementById('current-address').textContent = results[0].formatted_address;
+        }
+    });
+}
 
+// Inicialização do autocomplete
+function initializeAutocomplete() {
     const pickupInput = document.getElementById('pickup');
     const destinationInput = document.getElementById('destination');
     
     if (pickupInput && destinationInput) {
-        setupAutocomplete(pickupInput, 'pickup');
-        setupAutocomplete(destinationInput, 'destination');
+        const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+            componentRestrictions: { country: 'BR' }
+        });
+        
+        const destinationAutocomplete = new google.maps.places.Autocomplete(destinationInput, {
+            componentRestrictions: { country: 'BR' }
+        });
+
+        // Event listeners para os campos de autocomplete
+        pickupAutocomplete.addListener('place_changed', () => handlePlaceSelect(pickupAutocomplete, 'pickup'));
+        destinationAutocomplete.addListener('place_changed', () => handlePlaceSelect(destinationAutocomplete, 'destination'));
     }
 }
 
-// Configuração do autocomplete
-function setupAutocomplete(input, type) {
-    const autocomplete = new google.maps.places.Autocomplete(input, {
-        componentRestrictions: { country: 'BR' }
-    });
+// Handler para seleção de lugar no autocomplete
+function handlePlaceSelect(autocomplete, type) {
+    const place = autocomplete.getPlace();
+    if (!place.geometry) {
+        alert('Por favor, selecione um endereço válido da lista.');
+        return;
+    }
     
-    autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) {
-            alert('Por favor, selecione um endereço válido da lista.');
-            return;
-        }
-        
-        document.getElementById(`${type}_lat`).value = place.geometry.location.lat();
-        document.getElementById(`${type}_lng`).value = place.geometry.location.lng();
-        
-        calculateEstimates();
-    });
+    const location = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+    };
+
+    // Atualiza os campos hidden
+    document.getElementById(`${type}_lat`).value = location.lat;
+    document.getElementById(`${type}_lng`).value = location.lng;
+    
+    // Atualiza o mapa
+    if (type === 'pickup') {
+        updateOriginMarker(location);
+    } else {
+        updateDestinationMarker(location);
+    }
+    
+    calculateEstimates();
 }
 
 // Verifica parâmetros da URL para pré-preencher destino
@@ -290,87 +348,6 @@ function getUserLocation() {
             },
             (error) => {
                 console.error('Erro ao obter localização:', error);
-            }
-        );
-    }
-}
-
-// Espera o Google Maps carregar antes de inicializar
-function initializeMap() {
-    const mapElement = document.getElementById('map');
-    
-    // Verifica se o elemento do mapa existe
-    if (!mapElement) {
-        console.log('Elemento do mapa não encontrado');
-        return;
-    }
-
-    // Verifica se o Google Maps já está carregado
-    if (typeof google === 'undefined') {
-        setTimeout(initializeMap, 100);
-        return;
-    }
-
-    let map, currentLocationMarker;
-
-    // Inicializa o mapa
-    map = new google.maps.Map(mapElement, {
-        zoom: 15,
-        center: { lat: -23.550520, lng: -46.633308 }, // São Paulo
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-        zoomControl: true
-    });
-
-    // Tenta obter a localização do usuário
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-
-                // Centraliza o mapa na localização do usuário
-                map.setCenter(userLocation);
-
-                // Adiciona marcador da localização atual
-                currentLocationMarker = new google.maps.Marker({
-                    position: userLocation,
-                    map: map,
-                    title: 'Sua localização',
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 10,
-                        fillColor: '#4285F4',
-                        fillOpacity: 1,
-                        strokeColor: '#ffffff',
-                        strokeWeight: 2
-                    }
-                });
-
-                // Atualiza o endereço
-                const geocoder = new google.maps.Geocoder();
-                geocoder.geocode({ location: userLocation }, (results, status) => {
-                    if (status === 'OK' && results[0]) {
-                        const address = results[0].formatted_address;
-                        document.getElementById('current-address').textContent = address;
-                        
-                        // Salva a localização para uso posterior
-                        localStorage.setItem('lastKnownLocation', JSON.stringify({
-                            address: address,
-                            lat: userLocation.lat,
-                            lng: userLocation.lng,
-                            timestamp: new Date().toISOString()
-                        }));
-                    }
-                });
-            },
-            (error) => {
-                console.error('Erro ao obter localização:', error);
-                document.getElementById('current-address').textContent = 
-                    'Não foi possível obter sua localização';
             }
         );
     }

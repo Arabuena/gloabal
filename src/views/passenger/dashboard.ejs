@@ -108,13 +108,25 @@
     <!-- Scripts no final do body -->
     <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
     <script>
-        const googleMapsKey = '<%= googleMapsKey %>';
-        const userId = '<%= user._id %>';
-    </script>
-    <script async
-        src="https://maps.googleapis.com/maps/api/js?key=<%= googleMapsKey %>&libraries=places&callback=initMap">
+        // Variáveis globais disponíveis para todos os scripts
+        window.GLOBALS = {
+            googleMapsKey: '<%= googleMapsKey %>',
+            userId: '<%= user._id %>'
+        };
     </script>
     <script src="/js/passenger.js"></script>
+    <script>
+        // Carrega o Google Maps depois que o passenger.js estiver carregado
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${window.GLOBALS.googleMapsKey}&libraries=places&callback=initializeMap`;
+            script.async = true;
+            document.body.appendChild(script);
+        }
+        
+        // Carrega quando a página estiver pronta
+        document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+    </script>
     <script>
         document.getElementById('newRideBtn').addEventListener('click', () => {
             window.location.href = '/passenger/request-ride';
